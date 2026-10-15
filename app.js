@@ -376,39 +376,41 @@ function doPost(e) {
         } catch (whErr) {
           console.warn("Webhook fetch fallback:", whErr);
         }
+      }
+
+      // 3. Process fetched assignments
       if (data && data.success && Array.isArray(data.assignments)) {
-          const oldIds = new Set(octoberAssignments.map(a => a.id));
-          let newDetectedCount = 0;
+        const oldIds = new Set(octoberAssignments.map(a => a.id));
+        let newDetectedCount = 0;
 
-          const freshList = data.assignments.map(item => {
-            const isBrandNew = oldIds.size > 0 && !oldIds.has(item.id);
-            if (isBrandNew) newDetectedCount++;
-            return {
-              ...item,
-              isNew: isBrandNew
-            };
-          });
+        const freshList = data.assignments.map(item => {
+          const isBrandNew = oldIds.size > 0 && !oldIds.has(item.id);
+          if (isBrandNew) newDetectedCount++;
+          return {
+            ...item,
+            isNew: isBrandNew
+          };
+        });
 
-          // Retain any newly created optimistic items
-          const optimisticItems = octoberAssignments.filter(a => a.isLocalOptimistic && !freshList.some(f => f.topic === a.topic));
-          octoberAssignments = [...optimisticItems, ...freshList];
+        // Retain any newly created optimistic items
+        const optimisticItems = octoberAssignments.filter(a => a.isLocalOptimistic && !freshList.some(f => f.topic === a.topic));
+        octoberAssignments = [...optimisticItems, ...freshList];
 
-          lastOctoberSyncTime = new Date();
-          updateOctoberLastSyncTime();
+        lastOctoberSyncTime = new Date();
+        updateOctoberLastSyncTime();
 
-          populateOctoberFilterDropdowns(octoberAssignments);
-          updateOctoberStats(data.stats, octoberAssignments.length);
-          renderOctoberTable();
+        populateOctoberFilterDropdowns(octoberAssignments);
+        updateOctoberStats(data.stats, octoberAssignments.length);
+        renderOctoberTable();
 
-          if (octSyncStatusLabel) {
-            octSyncStatusLabel.innerHTML = 'LIVE SYNC &bull; Connected';
-          }
+        if (octSyncStatusLabel) {
+          octSyncStatusLabel.innerHTML = 'LIVE SYNC &bull; Connected';
+        }
 
-          if (notifyNew && newDetectedCount > 0) {
-            showToast(`✨ ${newDetectedCount} new assignment(s) detected in October 2026!`, 'info');
-          } else if (!isBackground && !notifyNew) {
-            showToast(`✅ Synced ${octoberAssignments.length} October 2026 tasks from Google Sheet!`, 'success');
-          }
+        if (notifyNew && newDetectedCount > 0) {
+          showToast(`✨ ${newDetectedCount} new assignment(s) detected in October 2026!`, 'info');
+        } else if (!isBackground && !notifyNew) {
+          showToast(`✅ Synced ${octoberAssignments.length} October 2026 tasks from Google Sheet!`, 'success');
         }
       }
     } catch (err) {
@@ -508,6 +510,9 @@ function doPost(e) {
 
     const elUrgent = document.getElementById('oct-stat-urgent');
     if (elUrgent) elUrgent.textContent = urgent;
+
+    const octMatchesTotal = document.getElementById('oct-matches-total');
+    if (octMatchesTotal) octMatchesTotal.textContent = total;
   }
 
   function populateOctoberFilterDropdowns(items) {
@@ -577,9 +582,17 @@ function doPost(e) {
 
       // Type filter
       if (typeFilter !== 'ALL') {
-        if (typeFilter === 'Article' && (item.contentType || '').toLowerCase() !== 'article') return false;
-        if (typeFilter === 'News' && (item.contentType || '').toLowerCase() !== 'news') return false;
-        if (typeFilter === 'SEO Optimization' && item.sheetTab !== 'SEO Optimization') return false;
+        if (typeFilter === 'SEO Optimization') {
+          if (item.sheetTab !== 'SEO Optimization' && (item.contentType || '') !== 'SEO Optimization') return false;
+        } else {
+          const itemType = (item.contentType || '').toLowerCase();
+          const targetType = typeFilter.toLowerCase();
+          if (targetType === 'article') {
+            if (itemType !== 'article' && itemType !== 'news') return false;
+          } else if (itemType !== targetType) {
+            return false;
+          }
+        }
       }
 
       // Category filter
@@ -625,6 +638,10 @@ function doPost(e) {
 
     if (octMatchesCount) {
       octMatchesCount.textContent = filtered.length;
+    }
+    const octMatchesTotal = document.getElementById('oct-matches-total');
+    if (octMatchesTotal) {
+      octMatchesTotal.textContent = octoberAssignments.length;
     }
 
     if (filtered.length === 0) {
