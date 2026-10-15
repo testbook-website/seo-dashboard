@@ -1,0 +1,21 @@
+{
+  "name": "seo-dashboard",
+  "version": "1.0.0",
+  "description": "RankAssign PRO - Goal-Driven SEO to Content Assignment Hub with OND 2026 Tracker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": [
+    "seo",
+    "content-assignment",
+    "ond-2026",
+    "google-sheets"
+  ],
+  "author": "SEO Team",
+  "license": "ISC"
+}
