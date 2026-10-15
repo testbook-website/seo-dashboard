@@ -1989,6 +1989,11 @@ Assigned By: ${item.assignedBy}`;
       });
     }
 
+    const btnClearOctEmpty = document.getElementById('btn-clear-oct-filters-empty');
+    if (btnClearOctEmpty && btnResetOctFilters) {
+      btnClearOctEmpty.addEventListener('click', () => btnResetOctFilters.click());
+    }
+
     // October Table Delegated Actions (Brief view & copy TSV)
     const octTableBody = document.getElementById('october-table-body');
     if (octTableBody) {
