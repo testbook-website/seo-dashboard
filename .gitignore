@@ -1,0 +1,36 @@
+# =====================================================================
+# SECURITY & PRIVACY - NEVER COMMIT CREDENTIALS OR ENV SECRETS
+# =====================================================================
+credentials.json
+credentials.json.json
+*.json.json
+.env
+.env.*
+*.env
+*.key
+*.pem
+*.token
+service-account*.json
+
+# Dependencies
+node_modules/
+
+# Local Inspection & Scratch Test Scripts
+inspect_*.js
+fetch_*validations.js
+test_*.js
+validate_*.js
+
+# Logs & Debugging
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.system_generated/
+.gemini/
+scratch/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+desktop.ini

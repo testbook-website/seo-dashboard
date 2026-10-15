@@ -1,0 +1,1183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO to Content Assignment Hub | Goal-Driven Task Dispatcher</title>
+  <meta name="description" content="Goal-oriented SEO task assignment platform for content teams with Google Sheets automated integration.">
+  
+  <!-- Modern Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheet -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-theme="light">
+
+  <!-- Top App Navigation Bar -->
+  <header class="app-header" id="app-header">
+    <div class="header-left">
+      <div class="brand-logo" id="brand-logo">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+          </svg>
+        </div>
+        <div class="logo-text">
+          <h1>RankAssign<span class="badge-pro">PRO</span></h1>
+          <p class="tagline">Goal-Driven SEO & Content Dispatcher</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Header Actions & Integration Status -->
+    <div class="header-actions">
+      <!-- Google Sheets Connection Status Badge -->
+      <div class="sheet-status-pill" id="sheet-status-pill" title="Target Sheet: CM JFM - JAS 2026">
+        <span class="status-dot connected" id="sheet-status-dot"></span>
+        <span class="status-text" id="sheet-status-text">Sheet: Connected (Row 2 Sync)</span>
+        <a href="https://docs.google.com/spreadsheets/d/1ihLeB9ZOJdaF841qGLoTWBULSRNsF9BjtxUXRxKuK2A/edit" target="_blank" rel="noopener" class="status-action-link" id="btn-open-live-sheet" title="Open Google Sheet in new tab">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <line x1="10" y1="14" x2="21" y2="3"></line>
+          </svg>
+          Open Sheet
+        </a>
+      </div>
+
+      <!-- Quick Action Buttons -->
+      <button class="btn btn-secondary btn-sm" id="btn-view-guide">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        Sheet Info
+      </button>
+
+      <button class="theme-toggle-btn" id="theme-toggle-btn" aria-label="Toggle Theme">
+        <span class="icon-sun">☀️</span>
+        <span class="icon-moon">🌙</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-layout" id="main-content">
+
+    <!-- Top Dashboard View Navigation Tabs -->
+    <nav class="dashboard-nav-container" id="dashboard-nav-container" aria-label="Dashboard Navigation Tabs">
+      <div class="nav-tabs-wrapper" role="tablist">
+        <button type="button" class="dashboard-tab-btn active" data-view="view-dispatch" id="tab-btn-dispatch" role="tab" aria-selected="true" aria-controls="view-dispatch">
+          <span class="tab-icon">✍️</span>
+          <span class="tab-title">Task Dispatcher</span>
+          <span class="tab-pill-badge">Row 2 Sync</span>
+        </button>
+
+        <button type="button" class="dashboard-tab-btn" data-view="view-october" id="tab-btn-october" role="tab" aria-selected="false" aria-controls="view-october">
+          <span class="tab-icon">📅</span>
+          <span class="tab-title">OND 2026 Tracker</span>
+          <span class="tab-pill-badge badge-october-count" id="tab-oct-badge">163</span>
+          <span class="live-pulse-dot" title="Live Auto-Sync Active (Oct • Nov • Dec)"></span>
+        </button>
+
+        <button type="button" class="dashboard-tab-btn" data-view="view-history" id="tab-btn-history" role="tab" aria-selected="false" aria-controls="view-history">
+          <span class="tab-icon">📋</span>
+          <span class="tab-title">Dispatched History</span>
+          <span class="tab-pill-badge" id="tab-history-badge">0</span>
+        </button>
+      </div>
+
+      <!-- Live Sync Realtime Indicator -->
+      <div class="nav-realtime-indicator" id="nav-realtime-indicator" title="Connected to Google Sheet: 1ihLeB9ZOJdaF841qGLoTWBULSRNsF9BjtxUXRxKuK2A">
+        <span class="pulse-ring"></span>
+        <span class="realtime-dot"></span>
+        <span class="realtime-text">Live Sheet: <strong id="header-oct-count-display">163 OND Articles</strong></span>
+      </div>
+    </nav>
+
+    <!-- ======================================================== -->
+    <!-- VIEW 1: ASSIGNMENT DISPATCHER & LIVE SHEET ROW SIMULATOR -->
+    <!-- ======================================================== -->
+    <div class="dashboard-view-panel active" id="view-dispatch" role="tabpanel" aria-labelledby="tab-btn-dispatch">
+
+      <!-- Top KPI Stats Metric Bar -->
+      <section class="stats-overview-grid" id="stats-overview" aria-label="Assignment Performance Metrics">
+      <div class="stat-card">
+        <div class="stat-icon icon-blue">📋</div>
+        <div class="stat-data">
+          <span class="stat-label">Total Assigned</span>
+          <span class="stat-value" id="stat-total-count">0</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-emerald">🎯</div>
+        <div class="stat-data">
+          <span class="stat-label">Goal Defined</span>
+          <span class="stat-value" id="stat-goal-rate">100%</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-amber">🔥</div>
+        <div class="stat-data">
+          <span class="stat-label">P0 / P1 Urgent</span>
+          <span class="stat-value" id="stat-urgent-count">0</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon icon-purple">⚡</div>
+        <div class="stat-data">
+          <span class="stat-label">Synced to Row 2</span>
+          <span class="stat-value" id="stat-synced-count">0</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Two-Column Form & Live Preview Section -->
+    <div class="content-split-grid">
+      
+      <!-- Left Column: Master Assignment Form -->
+      <section class="form-container-card" id="assignment-form-card">
+        <div class="card-header-banner">
+          <div class="header-banner-text">
+            <h2>New SEO Assignment</h2>
+            <p>Every task must have a strategic goal. Inserted directly at <strong>Row 2</strong> of your Google Sheet.</p>
+          </div>
+          <span class="required-indicator">All Fields Mandatory *</span>
+        </div>
+
+        <form id="assignment-form" class="assignment-form" novalidate>
+          
+          <!-- TARGET PROJECT / GOOGLE SHEET SELECTOR (SEO Optimization vs New Content) -->
+          <div class="project-selector-wrapper" id="project-selector-section">
+            <div class="project-selector-header">
+              <span class="project-sel-title">Target Project & Sheet Tab <span class="req">*</span></span>
+              <span class="row-target-tag">📌 Target: Inserts at <strong>Row 2</strong> (Top)</span>
+            </div>
+            
+            <div class="project-toggle-grid">
+              <label class="project-toggle-card active" id="label-seo-opt">
+                <input type="radio" name="projectType" value="SEO Optimization" checked>
+                <div class="proj-card-inner">
+                  <div class="proj-icon">🚀</div>
+                  <div class="proj-text">
+                    <span class="proj-title">SEO Optimization</span>
+                    <span class="proj-desc">Tab: <code>SEO Optimization</code> (gid: 1073261968)</span>
+                    <span class="proj-badge">Content Refresh & SERP Push</span>
+                  </div>
+                </div>
+              </label>
+
+              <label class="project-toggle-card" id="label-new-content">
+                <input type="radio" name="projectType" value="New Content">
+                <div class="proj-card-inner">
+                  <div class="proj-icon">✍️</div>
+                  <div class="proj-text">
+                    <span class="proj-title">New Content</span>
+                    <span class="proj-desc">Tab: <code>New Content</code> (gid: 1107724151)</span>
+                    <span class="proj-badge">Fresh Topic / News / Pages</span>
+                  </div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+          <!-- SECTION 1: THE ASSIGNMENT GOAL (Solves the core pain point) -->
+          <div class="form-section goal-highlight-section">
+            <div class="section-title-wrap">
+              <span class="section-step-num">01</span>
+              <div>
+                <h3 class="section-title">Assignment Goal & Strategic Justification <span class="req">*</span></h3>
+                <p class="section-subtitle">No random tasks! Define the exact purpose & expected outcome of this content assignment.</p>
+              </div>
+            </div>
+
+            <div class="goal-type-grid">
+              <label class="goal-chip">
+                <input type="radio" name="goalType" value="Rank Jump (Top 3)" checked>
+                <span class="chip-card">
+                  <span class="chip-icon">🚀</span>
+                  <span class="chip-title">SERP Rank Jump</span>
+                  <span class="chip-desc">Target Top 3 placement</span>
+                </span>
+              </label>
+
+              <label class="goal-chip">
+                <input type="radio" name="goalType" value="Traffic Decay Recovery">
+                <span class="chip-card">
+                  <span class="chip-icon">📉</span>
+                  <span class="chip-title">Decay Recovery</span>
+                  <span class="chip-desc">Reclaim lost impressions</span>
+                </span>
+              </label>
+
+              <label class="goal-chip">
+                <input type="radio" name="goalType" value="New Exam Notification">
+                <span class="chip-card">
+                  <span class="chip-icon">📢</span>
+                  <span class="chip-title">New Notification</span>
+                  <span class="chip-desc">Fresh official alert update</span>
+                </span>
+              </label>
+
+              <label class="goal-chip">
+                <input type="radio" name="goalType" value="Intent Gap / Syllabus Refresh">
+                <span class="chip-card">
+                  <span class="chip-icon">🎯</span>
+                  <span class="chip-title">Intent Gap Fix</span>
+                  <span class="chip-desc">Update syllabus / pattern</span>
+                </span>
+              </label>
+
+              <label class="goal-chip">
+                <input type="radio" name="goalType" value="Featured Snippet Win">
+                <span class="chip-card">
+                  <span class="chip-icon">🏆</span>
+                  <span class="chip-title">Snippet Capture</span>
+                  <span class="chip-desc">Win Pos 0 FAQ / Definition</span>
+                </span>
+              </label>
+
+              <label class="goal-chip">
+                <input type="radio" name="goalType" value="High-Intent Conversion / Leads">
+                <span class="chip-card">
+                  <span class="chip-icon">💎</span>
+                  <span class="chip-title">Lead & Enrolment</span>
+                  <span class="chip-desc">High commercial intent</span>
+                </span>
+              </label>
+            </div>
+
+            <!-- Target Goal & Expected Outcome -->
+            <div class="form-group mt-3">
+              <label for="targetGoal" class="field-label">Target Goal & Expected Metric Outcome <span class="req">*</span></label>
+              <textarea 
+                id="targetGoal" 
+                name="targetGoal" 
+                rows="2" 
+                class="form-control" 
+                placeholder="e.g. Move from Rank #14 to Rank #3 within 21 days; capture 15,000 monthly organic clicks before exam date."
+                required
+                aria-describedby="targetGoal-hint"
+              ></textarea>
+              <span id="targetGoal-hint" class="field-hint">Specify the target rank, click goal, or specific user query intent to fulfill.</span>
+              <div class="field-error-msg" id="targetGoal-error">Please define a clear target goal and expected outcome.</div>
+            </div>
+
+            <!-- Urgency / Why Now -->
+            <div class="form-group">
+              <label for="urgencyReason" class="field-label">Why Now? / Reason for Assignment <span class="req">*</span></label>
+              <input 
+                type="text" 
+                id="urgencyReason" 
+                name="urgencyReason" 
+                class="form-control" 
+                placeholder="e.g. Exam Notification expected this Friday; Competitors updated their cut-off page yesterday."
+                required
+              >
+              <div class="field-error-msg" id="urgencyReason-error">Urgency reason is required to prevent random task allocation.</div>
+            </div>
+          </div>
+
+
+          <!-- SECTION 2: TOPIC, CATEGORY & BASIC META -->
+          <div class="form-section">
+            <div class="section-title-wrap">
+              <span class="section-step-num">02</span>
+              <div>
+                <h3 class="section-title">Assignment Meta & Classification <span class="req">*</span></h3>
+                <p class="section-subtitle">Date, topic name, official exam category and target page.</p>
+              </div>
+            </div>
+
+            <div class="form-row-grid grid-3">
+              <!-- Date -->
+              <div class="form-group">
+                <label for="assignmentDate" class="field-label">Date <span class="req">*</span></label>
+                <input 
+                  type="date" 
+                  id="assignmentDate" 
+                  name="assignmentDate" 
+                  class="form-control" 
+                  required
+                >
+                <div class="field-error-msg">Assignment date is required.</div>
+              </div>
+
+              <!-- Priority -->
+              <div class="form-group">
+                <label for="contentPriority" class="field-label">Content Priority <span class="req">*</span></label>
+                <select id="contentPriority" name="contentPriority" class="form-control" required>
+                  <option value="" disabled>Select Priority</option>
+                  <option value="P0" class="priority-p0">P0 - Urgent (Immediate 24h Release)</option>
+                  <option value="P1" class="priority-p1" selected>P1 - High Priority (2-3 Days)</option>
+                  <option value="P2" class="priority-p2">P2 - Medium (Standard Sprint)</option>
+                  <option value="P3" class="priority-p3">P3 - Low (Evergreen Backlog)</option>
+                </select>
+                <div class="field-error-msg">Please specify priority.</div>
+              </div>
+
+              <!-- Assigned By -->
+              <div class="form-group">
+                <label for="assignedBy" class="field-label">SEO Assignee / Owner <span class="req">*</span></label>
+                <input 
+                  type="text" 
+                  id="assignedBy" 
+                  name="assignedBy" 
+                  class="form-control" 
+                  placeholder="e.g. Priyanshu (SEO Lead)"
+                  required
+                >
+                <div class="field-error-msg">Assignee name is required.</div>
+              </div>
+            </div>
+
+            <!-- Topic Title -->
+            <div class="form-group">
+              <label for="topic" class="field-label">Topic / Content Headline <span class="req">*</span></label>
+              <input 
+                type="text" 
+                id="topic" 
+                name="topic" 
+                class="form-control form-control-lg" 
+                placeholder="e.g. Bihar Police Constable Syllabus & Exam Pattern 2026 (Updated PDF)"
+                required
+              >
+              <div class="field-error-msg">Topic title is required.</div>
+            </div>
+
+            <div class="form-row-grid grid-2">
+              <!-- Category Dropdown (All 31 Exact Categories) -->
+              <div class="form-group">
+                <label for="category" class="field-label">Category <span class="req">*</span></label>
+                <div class="category-select-wrapper">
+                  <select id="category" name="category" class="form-control" required>
+                    <option value="" disabled selected>-- Select Exam Category --</option>
+                    <option value="Bihar Gov. Exam">Bihar Gov. Exam</option>
+                    <option value="CSIR NET">CSIR NET</option>
+                    <option value="CUET and UG Entrance">CUET and UG Entrance</option>
+                    <option value="Defence Exams">Defence Exams</option>
+                    <option value="Engineering Recruitment Exams">Engineering Recruitment Exams</option>
+                    <option value="GATE">GATE</option>
+                    <option value="Haryana Exams">Haryana Exams</option>
+                    <option value="SSC Exams">SSC Exams</option>
+                    <option value="Railway Exams">Railway Exams</option>
+                    <option value="Banking Exams">Banking Exams</option>
+                    <option value="Insurance Exam">Insurance Exam</option>
+                    <option value="Regulatory Exams">Regulatory Exams</option>
+                    <option value="Other Govt Exam">Other Govt Exam</option>
+                    <option value="MBA Entance Exams">MBA Entance Exams</option>
+                    <option value="Judiciary Exams">Judiciary Exams</option>
+                    <option value="Kerala Exams">Kerala Exams</option>
+                    <option value="MH Govt Exams">MH Govt Exams</option>
+                    <option value="MP Govt Exams">MP Govt Exams</option>
+                    <option value="Nursing Exams">Nursing Exams</option>
+                    <option value="Odisha Gov. Exam">Odisha Gov. Exam</option>
+                    <option value="Police Exams">Police Exams</option>
+                    <option value="State PSC">State PSC</option>
+                    <option value="Teaching Exams">Teaching Exams</option>
+                    <option value="UGC NET">UGC NET</option>
+                    <option value="UP Gov. Exam">UP Gov. Exam</option>
+                    <option value="UPSC Civil Services">UPSC Civil Services</option>
+                    <option value="Other UPSC Exams">Other UPSC Exams</option>
+                    <option value="West Bengal Exams">West Bengal Exams</option>
+                    <option value="Rajasthan Exams">Rajasthan Exams</option>
+                    <option value="Punjab Exams">Punjab Exams</option>
+                    <option value="K12">K12</option>
+                  </select>
+                </div>
+                <div class="field-error-msg">Please select an Exam Category.</div>
+              </div>
+
+              <!-- Page / URL -->
+              <div class="form-group">
+                <label for="page" class="field-label">Page / Target URL <span class="req">*</span></label>
+                <input 
+                  type="text" 
+                  id="page" 
+                  name="page" 
+                  class="form-control" 
+                  placeholder="e.g. /bihar-gov-exams/police-constable-syllabus or New Page"
+                  required
+                >
+                <div class="field-error-msg">Target Page URL or Slug is required.</div>
+              </div>
+            </div>
+          </div>
+
+
+          <!-- SECTION 3: KEYWORDS & SERP BENCHMARKING -->
+          <div class="form-section">
+            <div class="section-title-wrap">
+              <span class="section-step-num">03</span>
+              <div>
+                <h3 class="section-title">SERP & Keyword Intelligence <span class="req">*</span></h3>
+                <p class="section-subtitle">Track baseline rank and specify keyword targets for the writer.</p>
+              </div>
+            </div>
+
+            <div class="form-row-grid grid-2">
+              <!-- Primary Keywords -->
+              <div class="form-group">
+                <label for="primaryKeywords" class="field-label">Primary Keywords <span class="req">*</span></label>
+                <input 
+                  type="text" 
+                  id="primaryKeywords" 
+                  name="primaryKeywords" 
+                  class="form-control" 
+                  placeholder="e.g. bihar police constable syllabus 2026, bihar police exam pattern"
+                  required
+                >
+                <span class="field-hint">The main head term(s) for the H1, URL slug, and Title tag.</span>
+                <div class="field-error-msg">Primary Keywords are mandatory.</div>
+              </div>
+
+              <!-- Before Update Rank -->
+              <div class="form-group">
+                <label for="beforeUpdateRank" class="field-label">Before Update Rank <span class="req">*</span></label>
+                <input 
+                  type="text" 
+                  id="beforeUpdateRank" 
+                  name="beforeUpdateRank" 
+                  class="form-control" 
+                  placeholder="e.g. #14 (Page 2) or Not in Top 100 or New Page"
+                  required
+                >
+                <span class="field-hint">Current SERP rank for primary keyword before this assignment.</span>
+                <div class="field-error-msg">Current SERP rank is mandatory to measure impact.</div>
+              </div>
+            </div>
+
+            <!-- Secondary Keywords -->
+            <div class="form-group">
+              <label for="secondaryKeywords" class="field-label">Secondary Keywords <span class="req">*</span></label>
+              <textarea 
+                id="secondaryKeywords" 
+                name="secondaryKeywords" 
+                rows="2" 
+                class="form-control" 
+                placeholder="e.g. bihar police syllabus in hindi, negative marking in bihar police, total marks, subject wise weightage"
+                required
+              ></textarea>
+              <span class="field-hint">Supporting terms to include in H2/H3 subheadings and tables.</span>
+              <div class="field-error-msg">Secondary Keywords are mandatory.</div>
+            </div>
+
+            <!-- Keywords Bucket -->
+            <div class="form-group">
+              <label for="keywords" class="field-label">Keywords (LSI, Questions & Search Volume Bucket) <span class="req">*</span></label>
+              <textarea 
+                id="keywords" 
+                name="keywords" 
+                rows="2" 
+                class="form-control" 
+                placeholder="e.g. bihar police selection process (18k vol), physical test criteria (12k vol), syllabus pdf download link (22k vol)"
+                required
+              ></textarea>
+              <span class="field-hint">Keyword clusters, search volume data, PAA (People Also Ask) questions.</span>
+              <div class="field-error-msg">Keyword bucket is mandatory.</div>
+            </div>
+          </div>
+
+
+          <!-- SECTION 4: SEO SUGGESTION & BRIEF -->
+          <div class="form-section">
+            <div class="section-title-wrap">
+              <span class="section-step-num">04</span>
+              <div>
+                <h3 class="section-title">SEO Suggestion & Content Brief <span class="req">*</span></h3>
+                <p class="section-subtitle">Specific guidelines, structure requirements, competitors to beat, word count, schemas.</p>
+              </div>
+            </div>
+
+            <!-- SEO Suggestion Quick Prompt Fillers -->
+            <div class="quick-helpers-wrap">
+              <span class="helpers-label">Quick Suggestion Templates:</span>
+              <button type="button" class="btn-chip-helper" data-insert="[Structure Requirement]: Include Table of Subject-wise weightage, Official PDF download button, 5 FAQs with Schema.">
+                + Subject Table & FAQs
+              </button>
+              <button type="button" class="btn-chip-helper" data-insert="[Snippet Optimization]: Add a concise 45-word definition box under H2 for Featured Snippet capture.">
+                + Featured Snippet Box
+              </button>
+              <button type="button" class="btn-chip-helper" data-insert="[Competitor Benchmark]: Beat Testbook/Adda247 by adding detailed negative marking breakdown & previous cutoffs.">
+                + Competitor Gap
+              </button>
+            </div>
+
+            <div class="form-group">
+              <label for="seoSuggestion" class="field-label">SEO Suggestion / Actionable Directives <span class="req">*</span></label>
+              <textarea 
+                id="seoSuggestion" 
+                name="seoSuggestion" 
+                rows="4" 
+                class="form-control form-control-textarea" 
+                placeholder="1. Headings: H1 must include Primary Keyword. H2 for Exam Pattern, H2 for Subject-wise Syllabus.&#10;2. Competitor Gap: Add downloadable PDF link and recent year cutoff comparison table.&#10;3. FAQ Schema: Add 5 high-intent FAQs answering exam date, qualification, and syllabus changes.&#10;4. Internal Linking: Link to Bihar Police Previous Year Papers and Admit Card page."
+                required
+              ></textarea>
+              <div class="field-error-msg">Detailed SEO Suggestion is mandatory for content execution.</div>
+            </div>
+          </div>
+
+          <!-- Form Action Submit Controls -->
+          <div class="form-submit-actions">
+            <button type="reset" class="btn btn-secondary" id="btn-reset-form">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                <path d="M3 3v5h5"></path>
+              </svg>
+              Clear Form
+            </button>
+
+            <button type="submit" class="btn btn-primary btn-assign" id="btn-submit-task">
+              <span class="btn-spinner" id="btn-spinner" aria-hidden="true"></span>
+              <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+              </svg>
+              <span class="btn-label" id="btn-submit-label">Assign Task & Push to Sheet</span>
+            </button>
+          </div>
+
+        </form>
+      </section>
+
+      <!-- Right Column: Live Google Sheet Row Inspector & Quick Actions -->
+      <aside class="sidebar-preview-card" id="sidebar-preview">
+        
+        <!-- Live Row Inspector -->
+        <div class="preview-box">
+          <div class="preview-box-header">
+            <div class="preview-title">
+              <span class="sheet-icon">📊</span>
+              <div>
+                <h4>Live Sheet Row Inspector</h4>
+                <p>Simulating exact Google Sheet row structure</p>
+              </div>
+            </div>
+            <span class="live-tag">LIVE DRAFT</span>
+          </div>
+
+          <div class="preview-table-container">
+            <table class="preview-mini-table">
+              <tbody>
+                <tr>
+                  <th scope="row">Target Tab</th>
+                  <td id="preview-tab"><span class="badge-tab-pill seo-opt font-bold" id="preview-target-tab-badge">SEO Optimization &bull; Row 2</span></td>
+                </tr>
+                <tr>
+                  <th scope="row">Date</th>
+                  <td id="preview-date" class="text-muted">Not specified</td>
+                </tr>
+                <tr>
+                  <th scope="row">Topic</th>
+                  <td id="preview-topic" class="font-medium">Type a topic...</td>
+                </tr>
+                <tr>
+                  <th scope="row">Category</th>
+                  <td id="preview-category"><span class="badge-tag">Select Category</span></td>
+                </tr>
+                <tr>
+                  <th scope="row">Goal</th>
+                  <td id="preview-goal" class="goal-highlight-text">Select a Goal</td>
+                </tr>
+                <tr>
+                  <th scope="row">Priority</th>
+                  <td id="preview-priority"><span class="badge-priority p1">P1</span></td>
+                </tr>
+                <tr>
+                  <th scope="row">Page</th>
+                  <td id="preview-page" class="font-mono text-xs">/target-url</td>
+                </tr>
+                <tr>
+                  <th scope="row">Primary KW</th>
+                  <td id="preview-primary-kw">-</td>
+                </tr>
+                <tr>
+                  <th scope="row">Before Rank</th>
+                  <td id="preview-rank" class="font-mono font-bold">-</td>
+                </tr>
+                <tr>
+                  <th scope="row">Secondary KW</th>
+                  <td id="preview-secondary-kw" class="text-truncate-2">-</td>
+                </tr>
+                <tr>
+                  <th scope="row">Keywords</th>
+                  <td id="preview-keywords" class="text-truncate-2">-</td>
+                </tr>
+                <tr>
+                  <th scope="row">SEO Suggestion</th>
+                  <td id="preview-suggestion" class="text-truncate-3">-</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="preview-card-actions">
+            <button class="btn btn-outline btn-block" id="btn-copy-preview-tsv">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              Copy Row as TSV (Direct Paste to Sheet)
+            </button>
+          </div>
+        </div>
+
+        <!-- Google Sheets Integration Status Box -->
+        <div class="integration-status-card" id="integration-card">
+          <div class="int-header">
+            <span class="int-icon">🟢</span>
+            <div>
+              <h5>Google Sheets Webhook</h5>
+              <p id="int-status-desc">No webhook configured. Saving locally.</p>
+            </div>
+          </div>
+          <p class="int-note">You can configure the official Google Apps Script webhook to automatically push assignments straight to your live Google Sheet.</p>
+          <button class="btn btn-primary btn-sm btn-block" id="btn-configure-sheet-shortcut">
+            Setup Google Sheets Sync (1 Min)
+          </button>
+        </div>
+
+        <!-- Category Cheat Sheet Dropdown Quick Finder -->
+        <div class="category-quick-card">
+          <h5>All 31 Official Exam Categories</h5>
+          <div class="category-tags-cloud" id="category-tags-cloud">
+            <!-- Dynamically populated or rendered -->
+          </div>
+        </div>
+
+      </aside>
+
+    </div> <!-- End .content-split-grid -->
+  </div> <!-- End #view-dispatch -->
+
+  <!-- ======================================================== -->
+  <!-- VIEW 2: OND 2026 ASSIGNED ARTICLES & CONTENT TRACKER     -->
+  <!-- ======================================================== -->
+  <div class="dashboard-view-panel" id="view-october" role="tabpanel" aria-labelledby="tab-btn-october" style="display: none;">
+    
+    <!-- OND Header Card -->
+    <section class="october-header-card">
+      <div class="oct-header-main">
+        <div class="oct-header-badge">
+          <div class="oct-icon-wrap">
+            <span class="oct-icon">📅</span>
+          </div>
+          <div>
+            <div class="oct-title-row">
+              <h2>OND 2026 Assigned Articles &amp; Tasks</h2>
+              <div class="live-sync-pill" id="oct-live-indicator" title="Auto-syncs with Google Sheets in real-time">
+                <span class="live-dot pulse"></span>
+                <span id="oct-sync-status-label">LIVE SYNC &bull; Connected</span>
+              </div>
+            </div>
+            <p class="oct-subtitle">
+              Live tracking of all articles, news topics, and SEO optimizations assigned in <strong>OND (October, November, December 2026 &bull; Q4 Pipeline)</strong> in Google Sheet.
+            </p>
+          </div>
+        </div>
+
+        <div class="oct-header-actions">
+          <!-- Sync info -->
+          <div class="sync-timestamp-wrap">
+            <span class="sync-label">Last Synced</span>
+            <span class="sync-time" id="oct-last-synced-time">Just now</span>
+          </div>
+
+          <!-- Manual Refresh Button -->
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-october" title="Fetch latest updates from Google Sheet">
+            <svg class="spin-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+            </svg>
+            <span id="btn-refresh-oct-label">Sync Now</span>
+          </button>
+
+          <!-- Export CSV -->
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-export-october-csv" title="Export OND 2026 assignments as CSV">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export CSV
+          </button>
+
+          <!-- Quick Assign Button -->
+          <button type="button" class="btn btn-primary btn-sm" id="btn-quick-new-assign">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            + Assign Article
+          </button>
+        </div>
+      </div>
+
+      <!-- OND KPI Metric Cards Grid -->
+      <div class="oct-stats-grid">
+        <div class="oct-stat-card total" id="card-stat-total">
+          <div class="oct-stat-icon">📚</div>
+          <div class="oct-stat-info">
+            <span class="oct-stat-num" id="oct-stat-total">163</span>
+            <span class="oct-stat-label">Total OND Assigned</span>
+          </div>
+          <span class="oct-stat-sub">Q4 2026 Pipeline</span>
+        </div>
+
+        <div class="oct-stat-card new-content" id="card-stat-new">
+          <div class="oct-stat-icon">✍️</div>
+          <div class="oct-stat-info">
+            <span class="oct-stat-num" id="oct-stat-new-content">104</span>
+            <span class="oct-stat-label">New Content Articles</span>
+          </div>
+          <span class="oct-stat-sub">Tab: New Content</span>
+        </div>
+
+        <div class="oct-stat-card seo-opt" id="card-stat-seo">
+          <div class="oct-stat-icon">🚀</div>
+          <div class="oct-stat-info">
+            <span class="oct-stat-num" id="oct-stat-seo-opt">59</span>
+            <span class="oct-stat-label">SEO Optimizations</span>
+          </div>
+          <span class="oct-stat-sub">Tab: SEO Optimization</span>
+        </div>
+
+        <div class="oct-stat-card unpicked" id="card-stat-unpicked">
+          <div class="oct-stat-icon">⏳</div>
+          <div class="oct-stat-info">
+            <span class="oct-stat-num" id="oct-stat-unpicked">31</span>
+            <span class="oct-stat-label">Awaiting Pickup</span>
+          </div>
+          <span class="oct-stat-sub">Ready for Writers</span>
+        </div>
+
+        <div class="oct-stat-card picked" id="card-stat-picked">
+          <div class="oct-stat-icon">✅</div>
+          <div class="oct-stat-info">
+            <span class="oct-stat-num" id="oct-stat-picked">132</span>
+            <span class="oct-stat-label">Picked / In Progress</span>
+          </div>
+          <span class="oct-stat-sub">With Assigned Writers</span>
+        </div>
+
+        <div class="oct-stat-card urgent" id="card-stat-urgent">
+          <div class="oct-stat-icon">🔥</div>
+          <div class="oct-stat-info">
+            <span class="oct-stat-num" id="oct-stat-urgent">163</span>
+            <span class="oct-stat-label">P0 / P1 Urgent</span>
+          </div>
+          <span class="oct-stat-sub">High Priority Queue</span>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- OND Search & Filter Toolbar -->
+    <section class="oct-toolbar-card">
+      <div class="oct-toolbar-top">
+        <!-- Search box -->
+        <div class="oct-search-wrap">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="text" id="oct-search" placeholder="Search topic headline, target URL, keywords, assignee, writer..." aria-label="Search OND Assignments">
+          <button type="button" class="clear-search-btn" id="oct-clear-search" style="display:none;" aria-label="Clear search">&times;</button>
+        </div>
+
+        <!-- Month Filter Pills (All OND / October / November / December) -->
+        <div class="oct-segment-pills ond-month-pills" id="ond-month-pills" role="radiogroup" aria-label="Filter by OND Month">
+          <button type="button" class="segment-pill active" data-month="ALL">
+            <span>All OND</span>
+            <span class="pill-cnt" id="pill-count-ond-all">163</span>
+          </button>
+          <button type="button" class="segment-pill pill-oct" data-month="October">
+            <span>🍂 Oct</span>
+            <span class="pill-cnt" id="pill-count-ond-oct">163</span>
+          </button>
+          <button type="button" class="segment-pill pill-nov" data-month="November">
+            <span>🍁 Nov</span>
+            <span class="pill-cnt" id="pill-count-ond-nov">0</span>
+          </button>
+          <button type="button" class="segment-pill pill-dec" data-month="December">
+            <span>❄️ Dec</span>
+            <span class="pill-cnt" id="pill-count-ond-dec">0</span>
+          </button>
+        </div>
+
+        <!-- Source Segment Filter Buttons -->
+        <div class="oct-segment-pills" id="oct-source-pills" role="radiogroup" aria-label="Filter by Source Sheet">
+          <button type="button" class="segment-pill active" data-source="ALL">
+            <span>All Sources</span>
+            <span class="pill-cnt" id="pill-count-all">163</span>
+          </button>
+          <button type="button" class="segment-pill" data-source="New Content">
+            <span>New Content</span>
+            <span class="pill-cnt" id="pill-count-new">104</span>
+          </button>
+          <button type="button" class="segment-pill" data-source="SEO Optimization">
+            <span>SEO Optimization</span>
+            <span class="pill-cnt" id="pill-count-seo">59</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="oct-toolbar-bottom">
+        <!-- Content Type Filter -->
+        <div class="filter-group">
+          <label for="oct-filter-type">Type:</label>
+          <select id="oct-filter-type" class="filter-select">
+            <option value="ALL">All Types</option>
+            <option value="Article">Article</option>
+            <option value="News">News</option>
+            <option value="SEO Optimization">SEO Optimization</option>
+          </select>
+        </div>
+
+        <!-- Category Filter -->
+        <div class="filter-group">
+          <label for="oct-filter-category">Category:</label>
+          <select id="oct-filter-category" class="filter-select">
+            <option value="ALL">All Categories</option>
+          </select>
+        </div>
+
+        <!-- Assignee Filter -->
+        <div class="filter-group">
+          <label for="oct-filter-assignee">Assigned By:</label>
+          <select id="oct-filter-assignee" class="filter-select">
+            <option value="ALL">All Assigners</option>
+          </select>
+        </div>
+
+        <!-- Writer / Picked By Filter -->
+        <div class="filter-group">
+          <label for="oct-filter-writer">Picked By:</label>
+          <select id="oct-filter-writer" class="filter-select">
+            <option value="ALL">All Writers</option>
+          </select>
+        </div>
+
+        <!-- Status Filter -->
+        <div class="filter-group">
+          <label for="oct-filter-status">Status:</label>
+          <select id="oct-filter-status" class="filter-select">
+            <option value="ALL">All Statuses</option>
+            <option value="Assigned">Assigned (Unpicked)</option>
+            <option value="Picked">Picked</option>
+            <option value="Good to Go">Good to Go</option>
+            <option value="Live">Live</option>
+          </select>
+        </div>
+
+        <!-- Priority Filter -->
+        <div class="filter-group">
+          <label for="oct-filter-priority">Priority:</label>
+          <select id="oct-filter-priority" class="filter-select">
+            <option value="ALL">All Priorities</option>
+            <option value="P0">P0 Urgent</option>
+            <option value="P1">P1 High</option>
+            <option value="P2">P2 Medium</option>
+          </select>
+        </div>
+
+        <!-- Reset Filter -->
+        <button type="button" class="btn btn-outline btn-xs" id="btn-reset-oct-filters" title="Reset all filters">
+          Reset Filters
+        </button>
+
+        <!-- Match counter -->
+        <div class="filter-matches-badge" id="oct-matches-badge">
+          Showing <strong id="oct-matches-count">163</strong> of 163 articles
+        </div>
+      </div>
+    </section>
+
+    <!-- Real-Time October Assignments Table -->
+    <section class="table-responsive-container oct-table-container">
+      <table class="data-table oct-table" id="october-table">
+        <thead>
+          <tr>
+            <th scope="col" style="width: 100px;">Status</th>
+            <th scope="col" style="width: 125px;">Date Assigned</th>
+            <th scope="col" style="width: 155px;">Source Sheet</th>
+            <th scope="col" style="min-width: 260px;">Article Topic &amp; Target URL</th>
+            <th scope="col" style="width: 100px;">Type</th>
+            <th scope="col" style="width: 150px;">Category</th>
+            <th scope="col" style="width: 120px;">Assigned By</th>
+            <th scope="col" style="width: 120px;">Picked By</th>
+            <th scope="col" style="width: 80px;">Priority</th>
+            <th scope="col" style="min-width: 200px;">Target Keywords</th>
+            <th scope="col" style="min-width: 220px;">SEO Suggestion &amp; Goal</th>
+            <th scope="col" style="width: 120px; text-align: center;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="october-table-body">
+          <!-- Populated dynamically via app.js -->
+        </tbody>
+      </table>
+
+      <!-- Loading Skeleton -->
+      <div class="table-loading-card" id="oct-loading-card" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>Connecting to Google Sheets &amp; retrieving October 2026 assignments...</p>
+      </div>
+
+      <!-- Empty state -->
+      <div class="empty-state-card" id="oct-empty-state" style="display: none;">
+        <div class="empty-icon">🔍</div>
+        <h4>No October 2026 Assignments Found</h4>
+        <p id="oct-empty-desc">No assignments matched your current search and filter criteria.</p>
+        <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-oct-filters-empty">Clear All Filters</button>
+      </div>
+    </section>
+
+  </div> <!-- End #view-october -->
+
+  <!-- ======================================================== -->
+  <!-- VIEW 3: DISPATCHED ASSIGNMENTS HISTORY & LOCAL DATABASE -->
+  <!-- ======================================================== -->
+  <div class="dashboard-view-panel" id="view-history" role="tabpanel" aria-labelledby="tab-btn-history" style="display: none;">
+
+    <!-- Bottom Section: Assignment History & Database Log -->
+    <section class="history-section" id="history-section">
+      <div class="history-header">
+        <div class="history-title-wrap">
+          <div class="history-badge-count" id="history-count-badge">0</div>
+          <div>
+            <h3>SEO Assignment Log & Google Sheet Database</h3>
+            <p>Complete record of all content tasks assigned with their specific goals and keywords.</p>
+          </div>
+        </div>
+
+        <div class="history-toolbar">
+          <!-- Search input -->
+          <div class="search-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+            <input type="text" id="history-search" placeholder="Search topic, keyword, category..." aria-label="Search Assignments">
+          </div>
+
+          <!-- Tab Filter -->
+          <select id="filter-tab" class="filter-select" aria-label="Filter by Sheet Tab">
+            <option value="ALL">All Tabs (New Content &amp; SEO)</option>
+            <option value="New Content">New Content</option>
+            <option value="SEO Optimization">SEO Optimization</option>
+          </select>
+
+          <!-- Category Filter -->
+          <select id="filter-category" class="filter-select" aria-label="Filter by Category">
+            <option value="ALL">All Categories</option>
+            <!-- Generated dynamically -->
+          </select>
+
+          <!-- Priority Filter -->
+          <select id="filter-priority" class="filter-select" aria-label="Filter by Priority">
+            <option value="ALL">All Priorities</option>
+            <option value="P0">P0 - Urgent</option>
+            <option value="P1">P1 - High</option>
+            <option value="P2">P2 - Medium</option>
+            <option value="P3">P3 - Low</option>
+          </select>
+
+          <!-- Refresh from Sheet -->
+          <button class="btn btn-secondary btn-sm" id="btn-refresh-sheet" title="Reload live October 2026 data from Google Sheet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Live Sheet Sync
+          </button>
+
+          <!-- Export CSV -->
+          <button class="btn btn-secondary btn-sm" id="btn-export-csv" title="Export as CSV for Google Sheets or Excel">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="7 10 12 15 17 10"></polyline>
+              <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Export CSV
+          </button>
+
+          <!-- Sync Pending Button -->
+          <button class="btn btn-emerald btn-sm" id="btn-sync-all" title="Push all unsynced items to Google Sheet">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="23 4 23 10 17 10"></polyline>
+              <polyline points="1 20 1 14 7 14"></polyline>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+            </svg>
+            Sync to Sheet
+          </button>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-responsive-container">
+        <table class="data-table" id="assignments-table">
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Date</th>
+              <th>Topic & Page</th>
+              <th>Category</th>
+              <th>Goal & Outcome</th>
+              <th>Priority</th>
+              <th>Primary KW & Rank</th>
+              <th>Secondary / Bucket</th>
+              <th>SEO Suggestion</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="assignments-table-body">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+
+        <!-- Empty state placeholder -->
+        <div class="empty-state-card" id="empty-state-card">
+          <div class="empty-icon">📝</div>
+          <h4>No Assignments Dispatched Yet</h4>
+          <p>Fill out the form above to assign your first goal-driven content task to the Content Team.</p>
+        </div>
+      </div>
+    </section>
+
+  </div> <!-- End #view-history -->
+
+  </main>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: GOOGLE SHEETS SETUP & WEBHOOK CONFIGURATION       -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon-badge">⚡</div>
+            <div>
+              <h3 id="settings-modal-title">Google Sheets Integration Setup</h3>
+              <p>Connect this dashboard directly to your live Google Sheet in under 1 minute.</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="btn-close-settings" aria-label="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="setup-steps-list">
+            
+            <!-- Step 1 -->
+            <div class="setup-step-item">
+              <span class="step-badge">Step 1</span>
+              <div class="step-content">
+                <strong>Create / Open Your Target Google Sheet</strong>
+                <p>Open <a href="https://sheet.new" target="_blank" rel="noopener">sheet.new</a> or your team's existing Content Master Sheet.</p>
+              </div>
+            </div>
+
+            <!-- Step 2 -->
+            <div class="setup-step-item">
+              <span class="step-badge">Step 2</span>
+              <div class="step-content">
+                <strong>Open Apps Script & Paste the Script</strong>
+                <p>In Google Sheets, go to: <code>Extensions</code> &rarr; <code>Apps Script</code>. Replace the code in <code>Code.gs</code> with the code below:</p>
+                <div class="code-box-header">
+                  <span>Google Apps Script (Webhook Endpoint)</span>
+                  <button type="button" class="btn btn-secondary btn-xs" id="btn-copy-script">
+                    Copy Script Code
+                  </button>
+                </div>
+                <pre class="code-preview-box" id="script-code-block"></pre>
+              </div>
+            </div>
+
+            <!-- Step 3 -->
+            <div class="setup-step-item">
+              <span class="step-badge">Step 3</span>
+              <div class="step-content">
+                <strong>Deploy as Web App</strong>
+                <p>Click <code>Deploy</code> &rarr; <code>New deployment</code> &rarr; Select <code>Web app</code> &rarr; Set <i>"Who has access"</i> to <code>Anyone</code> &rarr; Click <code>Deploy</code> &rarr; Authorize and copy the <b>Web app URL</b> (ends in <code>/exec</code>).</p>
+              </div>
+            </div>
+
+            <!-- Step 4 -->
+            <div class="setup-step-item">
+              <span class="step-badge">Step 4</span>
+              <div class="step-content">
+                <strong>Paste Web App URL Below & Save</strong>
+                <div class="form-group mt-2">
+                  <label for="webhookUrlInput" class="field-label">Google Apps Script Web App URL (/exec):</label>
+                  <input 
+                    type="url" 
+                    id="webhookUrlInput" 
+                    class="form-control" 
+                    placeholder="https://script.google.com/macros/s/.../exec"
+                  >
+                </div>
+
+                <div class="test-connection-wrap mt-2">
+                  <button type="button" class="btn btn-secondary" id="btn-test-connection">
+                    <span class="btn-spinner" id="test-spinner" aria-hidden="true"></span>
+                    Test Webhook Connection
+                  </button>
+                  <span class="test-feedback-text" id="test-feedback"></span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-cancel-settings">Cancel</button>
+          <button type="button" class="btn btn-primary" id="btn-save-settings">Save & Connect</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- MODAL: VIEW FULL ASSIGNMENT BRIEF DETAILS                -->
+  <!-- ======================================================== -->
+  <div class="modal-backdrop" id="view-modal" role="dialog" aria-modal="true" aria-labelledby="view-modal-title">
+    <div class="modal-dialog modal-md">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title-wrap">
+            <div class="modal-icon-badge">📋</div>
+            <div>
+              <h3 id="view-modal-title">Assignment Brief Details</h3>
+              <p id="view-modal-subtitle">Content Execution Specification</p>
+            </div>
+          </div>
+          <button class="modal-close-btn" id="btn-close-view" aria-label="Close modal">&times;</button>
+        </div>
+
+        <div class="modal-body" id="view-modal-content">
+          <!-- Filled dynamically -->
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="btn-copy-brief-clipboard">Copy Full Brief</button>
+          <button type="button" class="btn btn-primary" id="btn-close-view-footer">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Center -->
+  <div class="toast-container" id="toast-container" aria-live="polite"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
