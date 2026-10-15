@@ -296,7 +296,7 @@
               </div>
             </div>
 
-            <div class="form-row-grid grid-3">
+            <div class="form-row-grid grid-4" id="meta-row-grid">
               <!-- Date -->
               <div class="form-group">
                 <label for="assignmentDate" class="field-label">Date <span class="req">*</span></label>
@@ -321,6 +321,19 @@
                   <option value="P3" class="priority-p3">P3 - Low (Evergreen Backlog)</option>
                 </select>
                 <div class="field-error-msg">Please specify priority.</div>
+              </div>
+
+              <!-- Content Type -->
+              <div class="form-group" id="group-contentType">
+                <label for="contentType" class="field-label">Content Type <span class="req">*</span></label>
+                <select id="contentType" name="contentType" class="form-control" required>
+                  <option value="News" selected>News (Alert / Notification)</option>
+                  <option value="Blog">Blog (In-depth Guide / Article)</option>
+                  <option value="Child Page">Child Page (Syllabus / Pattern)</option>
+                  <option value="SEO Group">SEO Group (Cluster Hub)</option>
+                  <option value="Discover">Discover (Google Discover Viral)</option>
+                </select>
+                <div class="field-error-msg">Content type is required.</div>
               </div>
 
               <!-- Assigned By -->

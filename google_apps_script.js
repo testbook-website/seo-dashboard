@@ -15,13 +15,13 @@
  * 2. Click "+ New project" (top left)
  * 3. Give your project a title: "SEO Assignment Webhook"
  * 4. Delete everything in Code.gs and paste this entire code.
- * 5. Click "Deploy" (blue button, top right) -> "New deployment"
+ * 5. Click "Deploy" (blue button, top right) -> "New deployment" (or "Manage deployments" -> Edit -> "New version" if updating)
  * 6. Click the gear icon next to "Select type" -> choose "Web app"
- * 7. Set Description: "SEO Webhook"
+ * 7. Set Description: "SEO Webhook Row 2 Insertion"
  * 8. Set "Execute as": "Me"
  * 9. Set "Who has access": "Anyone" (CRITICAL for dashboard access)
  * 10. Click "Deploy" -> "Authorize access" (Advanced -> Go to ... -> Allow)
- * 11. Copy the Web app URL (ends with /exec) into the dashboard if using webhook!
+ * 11. To test immediately inside Apps Script editor: select "testInsertNewContent" in toolbar and click "Run"!
  * ============================================================================
  */
 
@@ -192,10 +192,28 @@ function doPost(e) {
     lock.waitLock(30000);
 
     var data = {};
-    if (e.postData && e.postData.contents) {
-      data = JSON.parse(e.postData.contents);
-    } else if (e.parameter) {
+    if (e && e.postData && e.postData.contents) {
+      try {
+        data = JSON.parse(e.postData.contents);
+      } catch (parseErr) {
+        data = e.parameter || {};
+      }
+    } else if (e && e.parameter && Object.keys(e.parameter).length > 0) {
       data = e.parameter;
+    } else {
+      // Default sample for manual "Run" test inside Apps Script Editor
+      data = {
+        projectType: "New Content",
+        date: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+        topic: "SBI PO 2026 Notification & Syllabus Guide",
+        category: "Banking Exams",
+        contentPriority: "P1",
+        contentType: "News",
+        page: "https://testbook.com/sbi-po-2026",
+        primaryKeywords: "sbi po 2026 notification",
+        seoSuggestion: "Verified Row 2 Insertion from Apps Script Console",
+        assignedBy: "SEO Team"
+      };
     }
 
     var projectType = data.projectType || "SEO Optimization";
@@ -213,7 +231,7 @@ function doPost(e) {
       var strategyGoal = "[" + (data.goalType || "Goal") + "]: " + (data.targetGoal || "") + " | Why Now: " + (data.urgencyReason || "");
 
       // Search Intent strict validation (Col 22)
-      var validSearchIntent = "";
+      var validSearchIntent = "Informational → explain, guide, clarify";
       var rawIntent = data.searchIntent || "";
       if (rawIntent.indexOf("Mixed") !== -1) {
         validSearchIntent = "Mixed → balance info + action";
@@ -221,10 +239,6 @@ function doPost(e) {
         validSearchIntent = "Transactional → highlight benefits, CTAs";
       } else if (rawIntent.indexOf("Informational") !== -1) {
         validSearchIntent = "Informational → explain, guide, clarify";
-      } else if (rawIntent === "") {
-        validSearchIntent = "Informational → explain, guide, clarify";
-      } else {
-        validSearchIntent = rawIntent;
       }
 
       // Area of Optimisation strict validation (Col 17)
@@ -295,15 +309,28 @@ function doPost(e) {
         "⚡ WHY NOW: " + (data.urgencyReason || "N/A") + "\n\n" +
         "📝 SEO SUGGESTIONS:\n" + (data.seoSuggestion || "");
 
+      // Priority clamp for New Content (Col 5: P0, P1, P2 only)
+      var newPriority = data.contentPriority || "P1";
+      if (newPriority === "P3") newPriority = "P2";
+
+      // Type strict validation for New Content (Col 8: "Child Page", "Blog", "News", "SEO Group", "Discover")
+      var allowedTypes = ["Child Page", "Blog", "News", "SEO Group", "Discover"];
+      var validContentType = "News";
+      if (data.contentType && allowedTypes.indexOf(data.contentType) !== -1) {
+        validContentType = data.contentType;
+      } else if (data.contentType === "Article") {
+        validContentType = "News";
+      }
+
       row = [
         formattedDate,                          // Col 1: Date
         data.assignedBy || "SEO Team",          // Col 2: Assigned By
         "",                                     // Col 3: Date Picked
         "",                                     // Col 4: Picked by
-        data.contentPriority || "P1",           // Col 5: Content Priority
+        newPriority,                            // Col 5: Content Priority (P0, P1, P2)
         data.category || "",                    // Col 6: Category
         data.topic || data.page || "",          // Col 7: Page / Headline
-        data.contentType || "Article",          // Col 8: Type
+        validContentType,                       // Col 8: Type (Strictly News, Blog, Child Page, SEO Group, Discover)
         "",                                     // Col 9: [Blank]
         "",                                     // Col 10: Suggestions Doc.
         data.url || data.page || "",            // Col 11: Url
@@ -333,7 +360,14 @@ function doPost(e) {
       status: "success",
       message: "Successfully inserted into '" + projectType + "' at Row 2!",
       rowNumber: 2,
-      tab: projectType
+      tab: projectType,
+      insertedData: {
+        date: formattedDate,
+        topic: data.topic,
+        category: data.category,
+        priority: projectType === "SEO Optimization" ? priority : newPriority,
+        type: projectType === "SEO Optimization" ? "SEO Optimization" : validContentType
+      }
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -342,4 +376,63 @@ function doPost(e) {
       message: err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * ============================================================================
+ * ONE-CLICK TEST FUNCTIONS (Select function from dropdown and click "Run")
+ * ============================================================================
+ */
+function testInsertNewContent() {
+  var result = doPost({
+    postData: {
+      contents: JSON.stringify({
+        projectType: "New Content",
+        date: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+        topic: "CSIR NET Physical Sciences 2026 Notification & Syllabus",
+        category: "CSIR NET",
+        contentPriority: "P0",
+        contentType: "News",
+        page: "CSIR NET Physical Sciences 2026",
+        url: "https://testbook.com/csir-net-physical-sciences",
+        primaryKeywords: "csir net physical sciences 2026 syllabus",
+        secondaryKeywords: "csir net exam date, eligibility criteria",
+        keywords: "nta csir net 2026 pdf download",
+        seoSuggestion: "1. Urgent news release\n2. Add official PDF link\n3. Table with exam schedule",
+        assignedBy: "SEO Team",
+        goalType: "New Exam Notification",
+        targetGoal: "Top 3 SERP rank within 24h",
+        urgencyReason: "Notification announced today"
+      })
+    }
+  });
+  Logger.log("Result: " + result.getContent());
+  return result.getContent();
+}
+
+function testInsertSEOOptimization() {
+  var result = doPost({
+    postData: {
+      contents: JSON.stringify({
+        projectType: "SEO Optimization",
+        date: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+        topic: "Bihar Police Constable Syllabus & Exam Pattern 2026",
+        category: "Bihar Gov. Exam",
+        contentPriority: "P1",
+        page: "/bihar-gov-exams/police-constable-syllabus",
+        url: "https://testbook.com/bihar-police-constable-syllabus",
+        primaryKeywords: "bihar police constable syllabus 2026",
+        beforeUpdateRank: "#12",
+        secondaryKeywords: "bihar police exam pattern, subject wise marks",
+        keywords: "csbc bihar police syllabus pdf",
+        seoSuggestion: "1. Update 2026 revised syllabus\n2. Add Subject-wise weightage table\n3. 5 FAQs with schema",
+        assignedBy: "SEO Team",
+        goalType: "Rank Jump (Top 3)",
+        targetGoal: "Move from #12 to Top 3 within 21 days",
+        urgencyReason: "Competitors updated syllabus table"
+      })
+    }
+  });
+  Logger.log("Result: " + result.getContent());
+  return result.getContent();
 }

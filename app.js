@@ -135,6 +135,7 @@ function doPost(e) {
   const topicInput = document.getElementById('topic');
   const categorySelect = document.getElementById('category');
   const prioritySelect = document.getElementById('contentPriority');
+  const contentTypeInput = document.getElementById('contentType');
   const pageInput = document.getElementById('page');
   const primaryKwInput = document.getElementById('primaryKeywords');
   const beforeRankInput = document.getElementById('beforeUpdateRank');
@@ -1053,6 +1054,10 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
     const checkedProject = document.querySelector('input[name="projectType"]:checked');
     const projectType = checkedProject ? checkedProject.value : 'SEO Optimization';
 
+    const selectedContentType = (contentTypeInput && contentTypeInput.value) 
+      ? contentTypeInput.value 
+      : (projectType === 'New Content' ? 'News' : 'SEO Optimization');
+
     const newAssignment = {
       id: "TASK-" + Math.random().toString(36).substring(2, 8).toUpperCase(),
       projectType: projectType,
@@ -1063,6 +1068,7 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       targetGoal: targetGoalInput.value.trim(),
       urgencyReason: urgencyInput.value.trim(),
       contentPriority: prioritySelect.value,
+      contentType: selectedContentType,
       page: pageInput.value.trim(),
       primaryKeywords: primaryKwInput.value.trim(),
       beforeUpdateRank: beforeRankInput.value.trim(),
@@ -1083,7 +1089,11 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       let syncMessage = '';
 
       try {
-        const apiRes = await fetch('/api/assign', {
+        const assignEndpoint = (window.location.origin && window.location.origin.startsWith('http'))
+          ? '/api/assign'
+          : 'http://127.0.0.1:4173/api/assign';
+
+        const apiRes = await fetch(assignEndpoint, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newAssignment)
@@ -1206,9 +1216,9 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
     }
 
     try {
-      // Priority safety for SEO Optimization tab (accepts P0, P1, P2)
+      // Priority safety for sheet (accepts P0, P1, P2; clamp P3 to P2)
       let safePriority = item.contentPriority || "P1";
-      if ((item.projectType || "SEO Optimization") === "SEO Optimization" && safePriority === "P3") {
+      if (safePriority === "P3") {
         safePriority = "P2";
       }
 
@@ -1217,6 +1227,15 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       if (item.searchIntent) {
         if (item.searchIntent.indexOf("Mixed") !== -1) safeSearchIntent = "Mixed → balance info + action";
         else if (item.searchIntent.indexOf("Transactional") !== -1) safeSearchIntent = "Transactional → highlight benefits, CTAs";
+      }
+
+      // Strictly normalize Content Type for New Content (accepts Child Page, Blog, News, SEO Group, Discover)
+      const allowedTypes = ["Child Page", "Blog", "News", "SEO Group", "Discover"];
+      let safeContentType = "News";
+      if (item.contentType && allowedTypes.includes(item.contentType)) {
+        safeContentType = item.contentType;
+      } else if (item.contentType === "Article") {
+        safeContentType = "News";
       }
 
       const payload = {
@@ -1229,6 +1248,7 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
         targetGoal: item.targetGoal || "",
         urgencyReason: item.urgencyReason || "",
         contentPriority: safePriority,
+        contentType: safeContentType,
         page: item.page || item.topic || "Overview",
         primaryKeywords: item.primaryKeywords || "",
         beforeUpdateRank: item.beforeUpdateRank || "",
@@ -1245,7 +1265,7 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       await fetch(webhookUrl.trim(), {
         method: 'POST',
         mode: 'no-cors',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(payload)
       });
 

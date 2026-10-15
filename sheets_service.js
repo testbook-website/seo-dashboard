@@ -2,14 +2,29 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 
-// Locate credentials file
-let credPath = path.join(__dirname, 'credentials.json');
-if (!fs.existsSync(credPath)) {
-  credPath = path.join(__dirname, 'credentials.json.json');
-}
-
-if (!fs.existsSync(credPath)) {
-  console.error("WARNING: No credentials.json or credentials.json.json found!");
+function loadCredentials() {
+  if (process.env.GOOGLE_SERVICE_ACCOUNT_KEY) {
+    try {
+      return JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
+    } catch (e) {
+      console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_KEY:", e.message);
+    }
+  }
+  if (process.env.GOOGLE_CREDENTIALS) {
+    try {
+      return JSON.parse(process.env.GOOGLE_CREDENTIALS);
+    } catch (e) {
+      console.error("Failed to parse GOOGLE_CREDENTIALS:", e.message);
+    }
+  }
+  let credPath = path.join(__dirname, 'credentials.json');
+  if (!fs.existsSync(credPath)) {
+    credPath = path.join(__dirname, 'credentials.json.json');
+  }
+  if (fs.existsSync(credPath)) {
+    return JSON.parse(fs.readFileSync(credPath, 'utf8'));
+  }
+  return null;
 }
 
 const SPREADSHEET_ID = '1ihLeB9ZOJdaF841qGLoTWBULSRNsF9BjtxUXRxKuK2A';
@@ -39,7 +54,10 @@ async function getAccessToken() {
     return cachedToken;
   }
 
-  const creds = JSON.parse(fs.readFileSync(credPath, 'utf8'));
+  const creds = loadCredentials();
+  if (!creds) {
+    throw new Error("Google Service Account credentials not found (checked GOOGLE_SERVICE_ACCOUNT_KEY/GOOGLE_CREDENTIALS and credentials.json)");
+  }
 
   const header = { alg: 'RS256', typ: 'JWT' };
   const payload = {
@@ -203,15 +221,28 @@ function buildNewContentRow(data) {
     `⚡ WHY NOW: ${data.urgencyReason || 'N/A'}\n\n` +
     `📝 SEO SUGGESTIONS:\n${data.seoSuggestion || ''}`;
 
+  // Clamp priority to P0, P1, P2 (P3 clamped to P2 to satisfy sheet validation)
+  let priority = data.contentPriority || "P1";
+  if (priority === "P3") priority = "P2";
+
+  // Strictly normalize Type to allowed values: "Child Page", "Blog", "News", "SEO Group", "Discover"
+  const allowedTypes = ["Child Page", "Blog", "News", "SEO Group", "Discover"];
+  let contentType = "News";
+  if (data.contentType && allowedTypes.includes(data.contentType)) {
+    contentType = data.contentType;
+  } else if (data.contentType === "Article") {
+    contentType = "News";
+  }
+
   return [
     formattedDate,                                  // Col 1: Date
     data.assignedBy || "SEO Team",                  // Col 2: Assigned By
     "",                                             // Col 3: Date Picked
     "",                                             // Col 4: Picked by
-    data.contentPriority || "P1",                   // Col 5: Content Priority
+    priority,                                       // Col 5: Content Priority (P0, P1, P2)
     data.category || "",                            // Col 6: Category
     data.topic || data.page || "",                  // Col 7: Page / Topic headline
-    data.contentType || "Article",                  // Col 8: Type (News, Article, Notification)
+    contentType,                                    // Col 8: Type (Strictly News, Blog, Child Page, SEO Group, Discover)
     "",                                             // Col 9: [Blank]
     "",                                             // Col 10: Suggestions Doc.
     data.url || data.page || "",                    // Col 11: Url
@@ -553,5 +584,6 @@ module.exports = {
   formatDateWithSuffix,
   isOND2026,
   isOctober2026,
+  getAccessToken,
   getONDMonth2026
 };

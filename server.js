@@ -121,6 +121,20 @@ const server = http.createServer(async (req, res) => {
     return res.end("Forbidden");
   }
 
+  // Block access to sensitive files (credentials, env files, keys)
+  const baseName = path.basename(filePath).toLowerCase();
+  if (
+    baseName.startsWith('.env') ||
+    baseName.startsWith('credentials') ||
+    baseName.endsWith('.key') ||
+    baseName.endsWith('.pem') ||
+    baseName.endsWith('.token') ||
+    baseName.includes('service-account')
+  ) {
+    res.writeHead(403, { 'Content-Type': 'text/plain; charset=utf-8' });
+    return res.end("403 Forbidden: Access to sensitive files is restricted");
+  }
+
   fs.stat(filePath, (err, stats) => {
     if (err || !stats.isFile()) {
       res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });

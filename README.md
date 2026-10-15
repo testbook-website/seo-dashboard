@@ -14,11 +14,12 @@ An executive-level, goal-oriented assignment dashboard engineered specifically f
 
 ---
 
-## 🔑 Authentication (`credentials.json`)
-The application includes direct integration with the Google Cloud Service Account:
-- **Service Account**: `sheet-access@my-project-9920-481411.iam.gserviceaccount.com`
-- **Key File**: `credentials.json` (and `credentials.json.json`)
-- **Direct Backend API**: `server.js` authenticates directly using standard OAuth2 JWT with Google Sheets API v4. No complex OAuth popup or manual webhook setup is required when running locally!
+## 🔑 Security & Authentication (Zero-Secret Leakage Guarantee)
+- **Security Policy**: Credentials files (`credentials.json`, `credentials.json.json`, `*.env`) and private keys are **strictly excluded** from version control via `.gitignore` and blocked from static HTTP serving in `server.js`.
+- **Environment Variables Support**: The backend seamlessly reads `GOOGLE_SERVICE_ACCOUNT_KEY` or `GOOGLE_CREDENTIALS` from environment variables, or falls back to local `credentials.json` when developing on a workstation.
+- **GitHub Pages Live Link**:
+  👉 **https://testbook-website.github.io/seo-dashboard/**
+  *(On static GitHub Pages, the application safely delegates row insertions to Google Apps Script Webhook without exposing any service account keys).*
 
 ---
 
@@ -43,7 +44,8 @@ RankAssign PRO enforces accountability before any task can be dispatched:
 | **Category** | Dropdown (31) | ✅ Yes | Col `Category` |
 | **Goal & Expected Outcome** | Select & Textarea | ✅ Yes | `Strategy` column in SEO Opt / `SEO Suggestion` in New Content |
 | **Urgency Reason ("Why Now?")** | Text Input | ✅ Yes | `Comment` / `Strategy` |
-| **Content Priority** | Select Dropdown | ✅ Yes | Col `Content Priority` (`P0`, `P1`, `P2`, `P3`) |
+| **Content Priority** | Select Dropdown | ✅ Yes | Col `Content Priority` (`P0`, `P1`, `P2` — Sheet dropdown valid) |
+| **Content Type** | Select Dropdown | ✅ Yes | Col `Type` (`News`, `Blog`, `Child Page`, `SEO Group`, `Discover`) |
 | **Page / Target URL** | Text Input | ✅ Yes | Col `Page` and Col `Url` |
 | **Primary Keywords** | Text Input | ✅ Yes | Col `Primary Keywords` / `Keywords` |
 | **Before Update Rank** | Text Input | ✅ Yes | Col `Before Update Rank` |
