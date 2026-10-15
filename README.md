@@ -17,9 +17,9 @@ An executive-level, goal-oriented assignment dashboard engineered specifically f
 ## 🔑 Security & Authentication (Zero-Secret Leakage Guarantee)
 - **Security Policy**: Credentials files (`credentials.json`, `credentials.json.json`, `*.env`) and private keys are **strictly excluded** from version control via `.gitignore` and blocked from static HTTP serving in `server.js`.
 - **Environment Variables Support**: The backend seamlessly reads `GOOGLE_SERVICE_ACCOUNT_KEY` or `GOOGLE_CREDENTIALS` from environment variables, or falls back to local `credentials.json` when developing on a workstation.
-- **GitHub Pages Live Link**:
-  👉 **https://testbook-website.github.io/seo-dashboard/**
-  *(On static GitHub Pages, the application safely delegates row insertions to Google Apps Script Webhook without exposing any service account keys).*
+- **Live Deployments**:
+  - 👉 **Vercel Production (Full Serverless API)**: [https://seo-dashboard-chi-blond.vercel.app](https://seo-dashboard-chi-blond.vercel.app)
+  - 👉 **GitHub Pages (Static + Webhook Sync)**: [https://testbook-website.github.io/seo-dashboard/](https://testbook-website.github.io/seo-dashboard/)
 
 ---
 
