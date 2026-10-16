@@ -145,6 +145,26 @@ function doGet(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // Check Duplicate API endpoint (Remote live check)
+    if (action === "checkDuplicate" || action === "check") {
+      var dupCheck = checkDuplicateInSheetAppsScript(ss, {
+        url: (e && e.parameter && e.parameter.url) || "",
+        page: (e && e.parameter && e.parameter.page) || "",
+        topic: (e && e.parameter && e.parameter.topic) || "",
+        date: (e && e.parameter && e.parameter.date) || ""
+      });
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        isDuplicate: dupCheck.isDuplicate,
+        isWarning: dupCheck.isWarning,
+        allowed: dupCheck.allowed,
+        severity: dupCheck.severity,
+        daysDiff: dupCheck.daysDiff,
+        message: dupCheck.message,
+        existing: dupCheck.existing || null
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({
       status: "success",
       message: "SEO Assignment Webhook is active and connected to '" + ss.getName() + "'!",
@@ -186,6 +206,169 @@ function formatDateWithSuffix(dateStr) {
   return day + suffix + " " + month + " " + year;
 }
 
+// ============================================================================
+// 60-DAY DUPLICATE PREVENTION & ANTI-CANNIBALIZATION SHIELD
+// ============================================================================
+
+var GENERIC_SLUGS_SET = {
+  "overview": 1, "home": 1, "index": 1, "page": 1, "article": 1, "news": 1, "default": 1,
+  "syllabus": 1, "exam-pattern": 1, "notification": 1, "admit-card": 1, "result": 1,
+  "answer-key": 1, "cut-off": 1, "eligibility": 1, "salary": 1, "selection-process": 1
+};
+
+function normalizeUrlOrSlugAppsScript(raw) {
+  if (!raw) return "";
+  var str = String(raw).trim().toLowerCase();
+  str = str.replace(/^(https?:\/\/)?(www\.)?testbook\.com\/?/i, "");
+  str = str.replace(/^(https?:\/\/)/i, "");
+  str = str.replace(/[?#].*$/, "");
+  str = str.replace(/^\/+|\/+$/g, "");
+  return str;
+}
+
+function normalizeTitleAppsScript(raw) {
+  if (!raw) return "";
+  return String(raw)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function parseSheetDateAppsScript(str) {
+  if (!str) return null;
+  if (Object.prototype.toString.call(str) === '[object Date]') {
+    return isNaN(str.getTime()) ? null : str;
+  }
+  var s = String(str).trim();
+  var match = s.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})$/i);
+  if (match) {
+    var day = parseInt(match[1], 10);
+    var monthName = match[2].toLowerCase();
+    var year = parseInt(match[3], 10);
+    var monthNames = ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november", "december"];
+    var mIdx = monthNames.indexOf(monthName);
+    if (mIdx !== -1) {
+      return new Date(year, mIdx, day);
+    }
+  }
+  var iso = new Date(s);
+  if (!isNaN(iso.getTime())) return iso;
+  return null;
+}
+
+function checkDuplicateInSheetAppsScript(ss, data) {
+  var targetUrl = normalizeUrlOrSlugAppsScript(data.url || (data.page && String(data.page).indexOf("http") !== -1 ? data.page : ""));
+  var targetPage = normalizeUrlOrSlugAppsScript(data.page || "");
+  var targetTopic = normalizeTitleAppsScript(data.topic || "");
+
+  if (!targetUrl && !targetPage && !targetTopic) {
+    return { isDuplicate: false, isWarning: false, allowed: true, severity: "CLEAN", message: "No URL or topic provided." };
+  }
+
+  var targetDate = data.date ? (parseSheetDateAppsScript(data.date) || new Date()) : new Date();
+  var sixtyDaysMs = 60 * 24 * 60 * 60 * 1000;
+
+  var tabs = [
+    { name: "SEO Optimization", urlCol: 10, pageCol: 8, topicCol: 8, dateCol: 1, userCol: 3, maxCols: 16 },
+    { name: "New Content", urlCol: 11, pageCol: 7, topicCol: 7, dateCol: 1, userCol: 2, maxCols: 15 }
+  ];
+
+  var matched = null;
+
+  for (var t = 0; t < tabs.length; t++) {
+    var tabInfo = tabs[t];
+    var sheet = ss.getSheetByName(tabInfo.name);
+    if (!sheet || sheet.getLastRow() <= 1) continue;
+
+    var rowsToCheck = Math.min(sheet.getLastRow() - 1, 350);
+    var values = sheet.getRange(2, 1, rowsToCheck, tabInfo.maxCols).getValues();
+
+    for (var r = 0; r < values.length; r++) {
+      var row = values[r];
+      var rawDate = row[tabInfo.dateCol - 1];
+      var d = parseSheetDateAppsScript(rawDate);
+      if (!d) continue;
+
+      var ageMs = Math.abs(targetDate.getTime() - d.getTime());
+      if (ageMs > sixtyDaysMs) continue; // Scan past 60 days only
+
+      var rowUrl = normalizeUrlOrSlugAppsScript(row[tabInfo.urlCol - 1]);
+      var rowPage = normalizeUrlOrSlugAppsScript(row[tabInfo.pageCol - 1]);
+      var rowTopic = normalizeTitleAppsScript(row[tabInfo.topicCol - 1]);
+
+      // If both have explicit URLs and they are different, skip
+      if (targetUrl && rowUrl && targetUrl !== rowUrl) {
+        continue;
+      }
+
+      var isMatch = false;
+      var reason = "";
+
+      if (targetUrl && rowUrl && targetUrl === rowUrl && !GENERIC_SLUGS_SET[targetUrl] && targetUrl.length >= 4) {
+        isMatch = true;
+        reason = "Exact URL match";
+      } else if (targetUrl && !GENERIC_SLUGS_SET[targetUrl] && targetUrl.length >= 4 && rowPage && !GENERIC_SLUGS_SET[rowPage] && rowPage.length >= 4 && targetUrl === rowPage) {
+        isMatch = true;
+        reason = "URL matches previously assigned page";
+      } else if (targetPage && !GENERIC_SLUGS_SET[targetPage] && targetPage.length >= 4 && rowPage && !GENERIC_SLUGS_SET[rowPage] && rowPage.length >= 4 && targetPage === rowPage) {
+        isMatch = true;
+        reason = "Page slug match";
+      } else if (targetTopic && targetTopic.length > 12 && rowTopic && targetTopic === rowTopic) {
+        isMatch = true;
+        reason = "Identical topic headline";
+      }
+
+      if (isMatch) {
+        var daysDiff = Math.max(0, Math.round(ageMs / (24 * 60 * 60 * 1000)));
+        matched = {
+          sheetTab: tabInfo.name,
+          sheetRow: r + 2,
+          date: String(rawDate),
+          daysDiff: daysDiff,
+          assignedBy: String(row[tabInfo.userCol - 1] || "SEO Team"),
+          topic: String(row[tabInfo.topicCol - 1] || ""),
+          reason: reason
+        };
+        break;
+      }
+    }
+    if (matched) break;
+  }
+
+  if (!matched) {
+    return {
+      isDuplicate: false,
+      isWarning: false,
+      allowed: true,
+      severity: "CLEAN",
+      message: "Verified Clean: No duplicate found in the past 60 days."
+    };
+  }
+
+  if (matched.daysDiff <= 30) {
+    return {
+      isDuplicate: true,
+      isWarning: false,
+      allowed: false,
+      severity: "BLOCKED",
+      daysDiff: matched.daysDiff,
+      existing: matched,
+      message: "🚫 Duplicate Assignment Blocked: This page was already assigned " + (matched.daysDiff === 0 ? "today" : matched.daysDiff + " day" + (matched.daysDiff === 1 ? "" : "s") + " ago") + " (on " + matched.date + ") in \"" + matched.sheetTab + "\" by " + matched.assignedBy + " for topic \"" + matched.topic + "\". Re-assigning within 30 days is strictly prohibited to prevent content cannibalization."
+    };
+  }
+
+  return {
+    isDuplicate: false,
+    isWarning: true,
+    allowed: true,
+    severity: "WARNING",
+    daysDiff: matched.daysDiff,
+    existing: matched,
+    message: "⚠️ Re-optimization Notice: This page was previously assigned " + matched.daysDiff + " days ago (on " + matched.date + ") in \"" + matched.sheetTab + "\". Cooldown period (30 days) has passed, but ensure new goals are defined."
+  };
+}
+
 function doPost(e) {
   try {
     var lock = LockService.getScriptLock();
@@ -218,6 +401,24 @@ function doPost(e) {
 
     var projectType = data.projectType || "SEO Optimization";
     var ss = getSpreadsheet();
+
+    // ========================================================================
+    // STRICT 30-DAY DUPLICATE PREVENTION & ANTI-CANNIBALIZATION SHIELD
+    // ========================================================================
+    var dupCheck = checkDuplicateInSheetAppsScript(ss, data);
+    if (!dupCheck.allowed || dupCheck.isDuplicate) {
+      lock.releaseLock();
+      return ContentService.createTextOutput(JSON.stringify({
+        status: "error",
+        duplicate: true,
+        allowed: false,
+        severity: dupCheck.severity,
+        daysDiff: dupCheck.daysDiff,
+        message: dupCheck.message,
+        details: dupCheck
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var sheet = ss.getSheetByName(projectType);
 
     if (!sheet) {
@@ -436,3 +637,26 @@ function testInsertSEOOptimization() {
   Logger.log("Result: " + result.getContent());
   return result.getContent();
 }
+
+function testDuplicatePrevention() {
+  // Test with known recently assigned page (IOB SO Admit Card)
+  var result = doPost({
+    postData: {
+      contents: JSON.stringify({
+        projectType: "SEO Optimization",
+        date: Utilities.formatDate(new Date(), Session.getScriptTimeZone(), "yyyy-MM-dd"),
+        topic: "IOB SO Admit Card 2026 Test",
+        category: "Banking Exams",
+        contentPriority: "P0",
+        page: "/iob-so/admit-card",
+        url: "https://testbook.com/iob-so/admit-card",
+        primaryKeywords: "iob so admit card 2026",
+        seoSuggestion: "Test duplicate prevention",
+        assignedBy: "Test User"
+      })
+    }
+  });
+  Logger.log("Duplicate Test Result (Should be blocked): " + result.getContent());
+  return result.getContent();
+}
+

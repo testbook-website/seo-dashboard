@@ -90,6 +90,28 @@ RankAssign PRO enforces accountability before any task can be dispatched:
 
 ---
 
+## 🛡️ 60-Day Anti-Cannibalization Shield & Duplicate Prevention
+
+To eliminate redundant page assignments, protect against internal keyword cannibalization, and ensure editorial resources are never wasted:
+
+### 1. The 60-Day Memory Registry
+- The system automatically loads and indexes all assigned URLs and page slugs from the **past 60 days** across both tabs: `SEO Optimization` and `New Content`.
+- High-performance in-memory caching with automatic 45s refresh and invalidation on every new dispatch guarantees instant response times.
+- URL normalization automatically handles protocol differences (`http` vs `https`), subdomains (`testbook.com` vs `www.testbook.com`), trailing slashes, and query parameters.
+
+### 2. Strict 30-Day Hard Block (`<= 30 days`)
+- If an SEO assignee attempts to assign a URL or page that was already assigned within the **last 30 days**:
+  - **Live Client Feedback**: A red pulsing warning card appears in real time showing the previous assignment date, assignee name, source sheet tab, row number, and original topic.
+  - **Submit Button Block**: The submit button is locked into a blocked disabled state.
+  - **Backend Enforcement**: `POST /api/assign` returns `HTTP 409 Conflict`, strictly rejecting the insertion.
+  - **Webhook Parity**: The standalone Google Apps Script webhook also performs the exact same lookback and hard rejection.
+
+### 3. Advisory Cooldown Warning (`31 to 60 days`)
+- If the page was assigned between **31 and 60 days ago**:
+  - The system displays an informational amber alert notice stating that the 30-day cooldown has passed, reminding the team to establish fresh search intent and new goals for the update.
+
+---
+
 ## 🚀 How to Run the Server
 
 Start the local Node backend:

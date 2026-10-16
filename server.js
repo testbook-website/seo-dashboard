@@ -28,6 +28,9 @@ function sendJson(res, statusCode, data) {
 }
 
 const server = http.createServer(async (req, res) => {
+  req.on('error', err => console.warn('[Request Error]:', err.message));
+  res.on('error', err => console.warn('[Response Error]:', err.message));
+
   // Handle CORS Preflight
   if (req.method === 'OPTIONS') {
     res.writeHead(204, {
@@ -199,8 +202,18 @@ const server = http.createServer(async (req, res) => {
 
     res.writeHead(200, { 'Content-Type': contentType });
     const stream = fs.createReadStream(filePath);
+    stream.on('error', err => {
+      console.warn('[Stream Error]:', err.message);
+      if (!res.headersSent) res.writeHead(500);
+      res.end();
+    });
     stream.pipe(res);
   });
+});
+
+server.on('clientError', (err, socket) => {
+  if (err.code === 'ECONNRESET' || !socket.writable) return;
+  socket.end('HTTP/1.1 400 Bad Request\r\n\r\n');
 });
 
 server.listen(PORT, () => {
@@ -208,5 +221,14 @@ server.listen(PORT, () => {
   console.log(`🚀 RankAssign PRO Server running on http://127.0.0.1:${PORT}`);
   console.log(`📊 Connected to Sheet: 1ihLeB9ZOJdaF841qGLoTWBULSRNsF9BjtxUXRxKuK2A`);
   console.log(`🎯 Inserting at Row 2 into 'SEO Optimization' and 'New Content'`);
+  console.log(`🛡️ 60-Day Anti-Cannibalization Shield active (30d strict blocking)`);
   console.log(`================================================================`);
+});
+
+process.on('uncaughtException', err => {
+  console.error('[Process UncaughtException]:', err.message || err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Process UnhandledRejection]:', reason);
 });

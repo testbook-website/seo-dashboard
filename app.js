@@ -51,6 +51,18 @@
     THEME: 'rankassign_theme_v1'
   };
 
+  const PROD_VERCEL_BACKEND = 'https://seo-dashboard-chi-blond.vercel.app';
+
+  function getApiEndpoint(route) {
+    if (!route.startsWith('/')) route = '/' + route;
+    const host = (typeof window !== 'undefined' && window.location && window.location.hostname) ? window.location.hostname : '';
+    // If on GitHub Pages, file://, or any static hosting, automatically route to the live Vercel production serverless API
+    if (host.includes('github.io') || !host || window.location.protocol === 'file:') {
+      return PROD_VERCEL_BACKEND + route;
+    }
+    return route;
+  }
+
   // Google Apps Script source code template for display in the setup modal
   const APPS_SCRIPT_CODE = `/**
  * Google Apps Script Webhook for SEO Assignments
@@ -198,9 +210,7 @@ function doPost(e) {
     if (pageStatusIcon) pageStatusIcon.textContent = '⏳';
 
     try {
-      const endpoint = (window.location.origin && window.location.origin.startsWith('http'))
-        ? '/api/check-duplicate'
-        : 'http://127.0.0.1:4173/api/check-duplicate';
+      const endpoint = getApiEndpoint('/api/check-duplicate');
 
       const url = `${endpoint}?url=${encodeURIComponent(pageVal)}&page=${encodeURIComponent(pageVal)}&topic=${encodeURIComponent(topicVal)}&date=${encodeURIComponent(dateVal)}`;
       const res = await fetch(url);
@@ -215,17 +225,27 @@ function doPost(e) {
   }
 
   function renderDuplicateShield(data) {
-    if (!duplicateShieldCard) return;
+    const previewDupBadge = document.getElementById('preview-dup-badge');
 
     if (!data || data.severity === 'CLEAN' || !data.existing) {
-      duplicateShieldCard.classList.add('hidden');
+      if (duplicateShieldCard) duplicateShieldCard.classList.add('hidden');
       if (pageDupBadge) {
         pageDupBadge.className = 'field-dup-badge clean';
         pageDupBadge.textContent = '✓ 60-Day Clean';
       }
       if (pageStatusIcon) pageStatusIcon.textContent = '✅';
+      if (previewDupBadge) {
+        previewDupBadge.className = 'badge-dup-status clean';
+        previewDupBadge.textContent = '✓ 60-Day Clean';
+      }
+      if (btnSubmit) {
+        btnSubmit.classList.remove('blocked');
+        btnSubmit.removeAttribute('title');
+      }
       return;
     }
+
+    if (!duplicateShieldCard) return;
 
     const isBlocked = data.severity === 'BLOCKED' || data.isDuplicate || !data.allowed;
     const isWarning = data.severity === 'WARNING' || data.isWarning;
@@ -238,6 +258,23 @@ function doPost(e) {
       pageDupBadge.textContent = isBlocked ? '🚫 Duplicate Blocked (<30d)' : '⚠️ Re-optimization Notice';
     }
     if (pageStatusIcon) pageStatusIcon.textContent = isBlocked ? '❌' : '⚠️';
+
+    if (previewDupBadge) {
+      previewDupBadge.className = `badge-dup-status ${isBlocked ? 'blocked' : 'warning'}`;
+      previewDupBadge.textContent = isBlocked
+        ? `🚫 BLOCKED: Assigned ${data.daysDiff === 0 ? 'today' : data.daysDiff + 'd ago'} (${data.existing.sheetTab || 'Sheet'})`
+        : `⚠️ Notice: Assigned ${data.daysDiff}d ago (${data.existing.sheetTab || 'Sheet'})`;
+    }
+
+    if (btnSubmit) {
+      if (isBlocked) {
+        btnSubmit.classList.add('blocked');
+        btnSubmit.title = `Assignment Blocked: This page was already assigned ${data.daysDiff === 0 ? 'today' : data.daysDiff + ' days ago'} in "${data.existing.sheetTab}". Duplicate assignments within 30 days are strictly prohibited.`;
+      } else {
+        btnSubmit.classList.remove('blocked');
+        btnSubmit.removeAttribute('title');
+      }
+    }
 
     const shieldIcon = document.getElementById('shield-icon');
     if (shieldIcon) shieldIcon.textContent = isBlocked ? '🚫' : '⚠️';
@@ -351,7 +388,7 @@ function doPost(e) {
   // --- Check Backend Status ---
   async function checkBackendStatus() {
     try {
-      const res = await fetch('/api/status');
+      const res = await fetch(getApiEndpoint('/api/status'));
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.connected) {
@@ -464,17 +501,26 @@ function doPost(e) {
     try {
       let data = null;
 
-      // 1. Try local/daemon API endpoint first
+      // 1. Fetch from backend API (routes to live Vercel backend if on GitHub Pages)
       try {
-        const res = await fetch('/api/ond-assignments');
+        const endpoint = getApiEndpoint('/api/ond-assignments');
+        const res = await fetch(endpoint);
         if (res.ok) {
           data = await res.json();
         }
-      } catch (localErr) {
-        // Fallback for static hosting like GitHub Pages
+      } catch (apiErr) {
+        // Fallback directly to live Vercel production serverless API if relative failed
+        if (!data || !data.success) {
+          try {
+            const vRes = await fetch(PROD_VERCEL_BACKEND + '/api/ond-assignments');
+            if (vRes.ok) data = await vRes.json();
+          } catch (vErr) {
+            console.warn("Direct Vercel backend fallback failed:", vErr);
+          }
+        }
       }
 
-      // 2. Fallback to Google Apps Script Webhook if on GitHub Pages / static
+      // 2. Fallback to Google Apps Script Webhook if API is unreachable
       if ((!data || !data.success) && webhookUrl && webhookUrl.startsWith('http')) {
         try {
           const sep = webhookUrl.includes('?') ? '&' : '?';
@@ -1174,10 +1220,16 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       return;
     }
 
-    // Strict block if currently marked as duplicate
+    // Immediate synchronous duplicate check before submit
+    await checkDuplicateRealtime();
+
+    // Strict block if currently marked as duplicate (<30 days)
     if (currentDuplicateState && (!currentDuplicateState.allowed || currentDuplicateState.isDuplicate)) {
       showToast(currentDuplicateState.message || 'Duplicate assignment blocked within 30-day window.', 'error', true);
       if (duplicateShieldCard) {
+        duplicateShieldCard.classList.remove('hidden');
+        duplicateShieldCard.classList.add('pulse-shake');
+        setTimeout(() => duplicateShieldCard.classList.remove('pulse-shake'), 900);
         duplicateShieldCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
       }
       return;
@@ -1224,9 +1276,7 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       let syncMessage = '';
 
       try {
-        const assignEndpoint = (window.location.origin && window.location.origin.startsWith('http'))
-          ? '/api/assign'
-          : 'http://127.0.0.1:4173/api/assign';
+        const assignEndpoint = getApiEndpoint('/api/assign');
 
         const apiRes = await fetch(assignEndpoint, {
           method: 'POST',
@@ -1326,6 +1376,25 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       form.reset();
       dateInput.value = curDate;
       assignedByInput.value = curAssignee;
+
+      // Reset duplicate shield state
+      currentDuplicateState = null;
+      lastCheckedKey = '';
+      if (duplicateShieldCard) duplicateShieldCard.classList.add('hidden');
+      if (pageDupBadge) {
+        pageDupBadge.className = 'field-dup-badge';
+        pageDupBadge.textContent = '🛡️ 60-Day Shield Active';
+      }
+      if (pageStatusIcon) pageStatusIcon.textContent = '';
+      const previewDupBadge = document.getElementById('preview-dup-badge');
+      if (previewDupBadge) {
+        previewDupBadge.className = 'badge-dup-status clean';
+        previewDupBadge.textContent = '🛡️ 60-Day Shield Active';
+      }
+      if (btnSubmit) {
+        btnSubmit.classList.remove('blocked');
+        btnSubmit.removeAttribute('title');
+      }
 
       // Update UI
       updateLivePreview();
