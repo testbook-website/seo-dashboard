@@ -166,6 +166,115 @@ function doPost(e) {
   const btnSubmit = document.getElementById('btn-submit-task');
   const btnSubmitLabel = document.getElementById('btn-submit-label');
 
+  // 60-Day Duplicate Prevention Shield elements
+  const duplicateShieldCard = document.getElementById('duplicate-shield-card');
+  const pageDupBadge = document.getElementById('page-dup-badge');
+  const pageStatusIcon = document.getElementById('page-input-status-icon');
+  let duplicateCheckTimeout = null;
+  let lastCheckedKey = '';
+  let currentDuplicateState = null;
+
+  async function checkDuplicateRealtime() {
+    const pageVal = (pageInput ? pageInput.value : '').trim();
+    const topicVal = (topicInput ? topicInput.value : '').trim();
+    const dateVal = (dateInput ? dateInput.value : '').trim();
+
+    if (!pageVal && !topicVal) {
+      if (duplicateShieldCard) duplicateShieldCard.classList.add('hidden');
+      if (pageDupBadge) {
+        pageDupBadge.className = 'field-dup-badge';
+        pageDupBadge.textContent = '🛡️ 60-Day Shield Active';
+      }
+      if (pageStatusIcon) pageStatusIcon.textContent = '';
+      currentDuplicateState = null;
+      lastCheckedKey = '';
+      return;
+    }
+
+    const checkKey = `${pageVal}||${topicVal}||${dateVal}`;
+    if (checkKey === lastCheckedKey) return;
+    lastCheckedKey = checkKey;
+
+    if (pageStatusIcon) pageStatusIcon.textContent = '⏳';
+
+    try {
+      const endpoint = (window.location.origin && window.location.origin.startsWith('http'))
+        ? '/api/check-duplicate'
+        : 'http://127.0.0.1:4173/api/check-duplicate';
+
+      const url = `${endpoint}?url=${encodeURIComponent(pageVal)}&page=${encodeURIComponent(pageVal)}&topic=${encodeURIComponent(topicVal)}&date=${encodeURIComponent(dateVal)}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        currentDuplicateState = data;
+        renderDuplicateShield(data);
+      }
+    } catch (e) {
+      if (pageStatusIcon) pageStatusIcon.textContent = '';
+    }
+  }
+
+  function renderDuplicateShield(data) {
+    if (!duplicateShieldCard) return;
+
+    if (!data || data.severity === 'CLEAN' || !data.existing) {
+      duplicateShieldCard.classList.add('hidden');
+      if (pageDupBadge) {
+        pageDupBadge.className = 'field-dup-badge clean';
+        pageDupBadge.textContent = '✓ 60-Day Clean';
+      }
+      if (pageStatusIcon) pageStatusIcon.textContent = '✅';
+      return;
+    }
+
+    const isBlocked = data.severity === 'BLOCKED' || data.isDuplicate || !data.allowed;
+    const isWarning = data.severity === 'WARNING' || data.isWarning;
+
+    duplicateShieldCard.classList.remove('hidden', 'blocked', 'warning', 'clean');
+    duplicateShieldCard.classList.add(isBlocked ? 'blocked' : 'warning');
+
+    if (pageDupBadge) {
+      pageDupBadge.className = `field-dup-badge ${isBlocked ? 'blocked' : 'warning'}`;
+      pageDupBadge.textContent = isBlocked ? '🚫 Duplicate Blocked (<30d)' : '⚠️ Re-optimization Notice';
+    }
+    if (pageStatusIcon) pageStatusIcon.textContent = isBlocked ? '❌' : '⚠️';
+
+    const shieldIcon = document.getElementById('shield-icon');
+    if (shieldIcon) shieldIcon.textContent = isBlocked ? '🚫' : '⚠️';
+
+    const shieldBadge = document.getElementById('shield-badge');
+    if (shieldBadge) shieldBadge.textContent = isBlocked ? 'DUPLICATE DETECTED' : 'RE-OPTIMIZATION NOTICE';
+
+    const daysTag = document.getElementById('shield-days-tag');
+    if (daysTag) {
+      daysTag.textContent = `Assigned ${data.daysDiff === 0 ? 'today' : data.daysDiff + ' day' + (data.daysDiff === 1 ? '' : 's') + ' ago'}`;
+    }
+
+    const headline = document.getElementById('shield-headline');
+    if (headline) headline.textContent = data.message;
+
+    const existing = data.existing || {};
+    const metaDate = document.getElementById('shield-meta-date');
+    if (metaDate) metaDate.textContent = existing.date || '-';
+
+    const metaAssignedBy = document.getElementById('shield-meta-assignedBy');
+    if (metaAssignedBy) metaAssignedBy.textContent = existing.assignedBy || 'SEO Team';
+
+    const metaTab = document.getElementById('shield-meta-tab');
+    if (metaTab) metaTab.textContent = existing.sheetTab || '-';
+
+    const metaRow = document.getElementById('shield-meta-row');
+    if (metaRow) metaRow.textContent = existing.sheetRow ? `Row ${existing.sheetRow}` : '-';
+
+    const metaTopic = document.getElementById('shield-meta-topic');
+    if (metaTopic) metaTopic.textContent = existing.topic || existing.page || '-';
+  }
+
+  function scheduleDuplicateCheck() {
+    clearTimeout(duplicateCheckTimeout);
+    duplicateCheckTimeout = setTimeout(checkDuplicateRealtime, 350);
+  }
+
   // Table & Stats
   const tableBody = document.getElementById('assignments-table-body');
   const emptyStateCard = document.getElementById('empty-state-card');
@@ -1065,6 +1174,15 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
       return;
     }
 
+    // Strict block if currently marked as duplicate
+    if (currentDuplicateState && (!currentDuplicateState.allowed || currentDuplicateState.isDuplicate)) {
+      showToast(currentDuplicateState.message || 'Duplicate assignment blocked within 30-day window.', 'error', true);
+      if (duplicateShieldCard) {
+        duplicateShieldCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      return;
+    }
+
     const checkedGoal = document.querySelector('input[name="goalType"]:checked');
     const goalType = checkedGoal ? checkedGoal.value : 'SERP Rank Jump';
 
@@ -1122,6 +1240,15 @@ ${item.seoSuggestion || item.strategy || 'None'}`;
             synced = true;
             syncMessage = `Inserted at Row 2 in "${projectType}"!`;
           }
+        } else if (apiRes.status === 409) {
+          const apiJson = await apiRes.json();
+          setButtonLoading(false);
+          showToast(apiJson.error || 'Duplicate assignment blocked within 30-day window.', 'error', true);
+          if (duplicateShieldCard && apiJson.details) {
+            renderDuplicateShield(apiJson.details);
+            duplicateShieldCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+          return;
         }
       } catch (backendErr) {
         console.warn("Direct /api/assign unavailable, checking webhook fallback...", backendErr);
@@ -1784,6 +1911,18 @@ Assigned By: ${item.assignedBy}`;
         input.addEventListener('change', updateLivePreview);
       }
     });
+
+    // 60-Day Duplicate Prevention Real-time listeners
+    if (pageInput) {
+      pageInput.addEventListener('input', scheduleDuplicateCheck);
+      pageInput.addEventListener('change', checkDuplicateRealtime);
+      pageInput.addEventListener('blur', checkDuplicateRealtime);
+    }
+    if (topicInput) {
+      topicInput.addEventListener('input', scheduleDuplicateCheck);
+      topicInput.addEventListener('change', checkDuplicateRealtime);
+      topicInput.addEventListener('blur', checkDuplicateRealtime);
+    }
 
     // Radio change for goal types
     const goalRadios = document.querySelectorAll('input[name="goalType"]');

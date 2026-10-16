@@ -270,6 +270,16 @@ async function assignToSheet(assignmentData) {
   }
 
   const token = await getAccessToken();
+
+  // Duplicate prevention check (strictly blocks assignments within 30 days)
+  const dupCheck = await checkDuplicateAssignment(assignmentData);
+  if (!dupCheck.allowed) {
+    const error = new Error(dupCheck.message);
+    error.isDuplicate = true;
+    error.duplicateDetails = dupCheck;
+    throw error;
+  }
+
   const rowData = projectType === "SEO Optimization"
     ? buildSeoOptimizationRow(assignmentData)
     : buildNewContentRow(assignmentData);
@@ -573,6 +583,300 @@ async function getONDAssignments() {
   };
 }
 
+// ============================================================================
+// 60-DAY DUPLICATE PREVENTION & CANNIBALIZATION SHIELD REGISTRY
+// ============================================================================
+let urlRegistryCache = null;
+let urlRegistryExpiresAt = 0;
+
+/**
+ * Robust date parser for sheet date formats ("15th October 2026", "14 October 2026", "2026-10-15", etc.)
+ */
+function parseSheetDate(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  // 1. "15th October 2026", "14 October 2026"
+  const matchMonthName = s.match(/(\d+)(?:st|nd|rd|th)?\s+([A-Za-z]+)\s+(\d{4})/i);
+  if (matchMonthName) {
+    const day = parseInt(matchMonthName[1], 10);
+    const mStr = matchMonthName[2].toLowerCase();
+    const months = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+    const monthIdx = months.findIndex(m => mStr.startsWith(m));
+    const year = parseInt(matchMonthName[3], 10);
+    if (monthIdx !== -1) {
+      return new Date(year, monthIdx, day);
+    }
+  }
+  // 2. "2026-10-15" or "2026/10/15"
+  const matchIso = s.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (matchIso) {
+    return new Date(parseInt(matchIso[1], 10), parseInt(matchIso[2], 10) - 1, parseInt(matchIso[3], 10));
+  }
+  // 3. "15/10/2026" or "15-10-2026"
+  const matchDmy = s.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})/);
+  if (matchDmy) {
+    return new Date(parseInt(matchDmy[3], 10), parseInt(matchDmy[2], 10) - 1, parseInt(matchDmy[1], 10));
+  }
+  const fallback = new Date(s);
+  if (!isNaN(fallback.getTime())) return fallback;
+  return null;
+}
+
+/**
+ * Standardize URL or page slug for accurate duplicate detection
+ * e.g., "https://www.testbook.com/iob-so/admit-card/?utm_source=seo#faq" -> "iob-so/admit-card"
+ */
+function normalizeUrlOrSlug(str) {
+  if (!str) return '';
+  let s = String(str).trim().toLowerCase();
+  s = s.replace(/^https?:\/\//, '');
+  s = s.replace(/^www\./, '');
+  s = s.replace(/^testbook\.com\//, '');
+  s = s.replace(/[?#].*$/, '');
+  s = s.replace(/^\/+|\/+$/g, '');
+  return s;
+}
+
+/**
+ * Standardize topic or headline string for duplicate checking
+ */
+function normalizeTitle(str) {
+  if (!str) return '';
+  return String(str).toLowerCase().replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Fetch and build the 60-Day URL & Page Registry from both tabs
+ * Caches in memory for 45 seconds to maximize responsiveness
+ */
+async function getRecentUrlRegistry(forceRefresh = false) {
+  const now = Date.now();
+  if (!forceRefresh && urlRegistryCache && urlRegistryExpiresAt > now) {
+    return urlRegistryCache;
+  }
+
+  const token = await getAccessToken();
+  const range1 = encodeURIComponent('SEO Optimization!A1:Z350');
+  const range2 = encodeURIComponent('New Content!A1:Z350');
+  const url = `https://sheets.googleapis.com/v4/spreadsheets/${SPREADSHEET_ID}/values:batchGet?ranges=${range1}&ranges=${range2}`;
+
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const data = await res.json();
+  if (data.error) {
+    throw new Error(data.error.message || JSON.stringify(data.error));
+  }
+
+  const seoRows = (data.valueRanges && data.valueRanges[0] && data.valueRanges[0].values) || [];
+  const newRows = (data.valueRanges && data.valueRanges[1] && data.valueRanges[1].values) || [];
+
+  const registry = [];
+  const nowDate = new Date();
+
+  // Process SEO Optimization
+  seoRows.slice(1).forEach((r, idx) => {
+    const rawDate = r[0] || '';
+    const d = parseSheetDate(rawDate);
+    if (!d) return;
+
+    // Filter within ~60 days (or today/future)
+    const diffDays = Math.round((nowDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 60 && diffDays < -7) return;
+
+    const rowNum = idx + 2;
+    const page = r[7] || '';
+    const targetUrl = r[9] || '';
+    const topic = r[10] || page || '';
+    const normUrl = normalizeUrlOrSlug(targetUrl || page);
+    const normPage = normalizeUrlOrSlug(page);
+    const normTopic = normalizeTitle(topic);
+
+    if (normUrl || normPage || normTopic) {
+      registry.push({
+        id: `SEO-ROW-${rowNum}`,
+        sheetTab: 'SEO Optimization',
+        sheetRow: rowNum,
+        date: rawDate,
+        parsedDate: d.toISOString(),
+        diffDays: Math.max(0, diffDays),
+        topic: topic,
+        page: page,
+        url: targetUrl || page,
+        normUrl,
+        normPage,
+        normTopic,
+        category: r[5] || '',
+        priority: r[6] || 'P1',
+        assignedBy: r[2] || 'SEO Team',
+        pickedBy: r[3] || '',
+        status: r[4] || ''
+      });
+    }
+  });
+
+  // Process New Content
+  newRows.slice(1).forEach((r, idx) => {
+    const rawDate = r[0] || '';
+    const d = parseSheetDate(rawDate);
+    if (!d) return;
+
+    const diffDays = Math.round((nowDate.getTime() - d.getTime()) / (1000 * 60 * 60 * 24));
+    if (diffDays > 60 && diffDays < -7) return;
+
+    const rowNum = idx + 2;
+    const page = r[6] || '';
+    const targetUrl = r[10] || r[16] || '';
+    const topic = r[6] || '';
+    const normUrl = normalizeUrlOrSlug(targetUrl || page);
+    const normPage = normalizeUrlOrSlug(page);
+    const normTopic = normalizeTitle(topic);
+
+    if (normUrl || normPage || normTopic) {
+      registry.push({
+        id: `NEW-ROW-${rowNum}`,
+        sheetTab: 'New Content',
+        sheetRow: rowNum,
+        date: rawDate,
+        parsedDate: d.toISOString(),
+        diffDays: Math.max(0, diffDays),
+        topic: topic,
+        page: page,
+        url: targetUrl || page,
+        normUrl,
+        normPage,
+        normTopic,
+        category: r[5] || '',
+        priority: r[4] || 'P1',
+        assignedBy: r[1] || 'SEO Team',
+        pickedBy: r[3] || '',
+        status: r[13] || ''
+      });
+    }
+  });
+
+  // Sort by date descending (most recent assignments first)
+  registry.sort((a, b) => new Date(b.parsedDate) - new Date(a.parsedDate));
+
+  urlRegistryCache = registry;
+  urlRegistryExpiresAt = Date.now() + 45000; // 45 seconds TTL
+  return registry;
+}
+
+/**
+ * Check if a proposed assignment is a duplicate of a page/URL assigned within the past 30/60 days.
+ * - Under 30 days: STRICT BLOCK (allowed = false)
+ * - 31 to 60 days: WARNING FLAG (allowed = true, warning = true)
+ * - None / > 60 days: CLEAN (allowed = true)
+ */
+async function checkDuplicateAssignment({ url, page, topic, date }) {
+  const registry = await getRecentUrlRegistry();
+
+  const normInputUrl = normalizeUrlOrSlug(url);
+  const normInputPage = normalizeUrlOrSlug(page);
+  const normInputTopic = normalizeTitle(topic || page);
+
+  // Skip check if inputs are completely blank
+  if (!normInputUrl && !normInputPage && !normInputTopic) {
+    return { isDuplicate: false, isWarning: false, allowed: true, severity: 'CLEAN', message: 'No URL or topic provided.' };
+  }
+
+  const GENERIC_SLUGS = new Set([
+    'overview', 'home', 'index', 'page', 'article', 'news', 'default',
+    'syllabus', 'exam-pattern', 'notification', 'admit-card', 'result',
+    'answer-key', 'cut-off', 'eligibility', 'salary', 'selection-process'
+  ]);
+
+  function isMeaningfulSlug(slug) {
+    if (!slug || slug.length < 4) return false;
+    return !GENERIC_SLUGS.has(String(slug).toLowerCase().trim());
+  }
+
+  // Search for the closest recent match
+  let matchedItem = null;
+  let matchReason = '';
+
+  for (const item of registry) {
+    // If both have explicit URLs and they are different, they are definitely different pages!
+    if (normInputUrl && item.normUrl && normInputUrl !== item.normUrl) {
+      continue;
+    }
+
+    // 1. Direct URL match (strongest signal)
+    if (normInputUrl && item.normUrl && normInputUrl === item.normUrl && isMeaningfulSlug(normInputUrl)) {
+      matchedItem = item;
+      matchReason = 'Exact URL match';
+      break;
+    }
+
+    // 2. URL matches Page slug (only if meaningful)
+    if (normInputUrl && isMeaningfulSlug(normInputUrl) && item.normPage && isMeaningfulSlug(item.normPage) && normInputUrl === item.normPage) {
+      matchedItem = item;
+      matchReason = 'URL slug matches previously assigned page';
+      break;
+    }
+
+    // 3. Page slug matches URL (only if meaningful)
+    if (normInputPage && isMeaningfulSlug(normInputPage) && item.normUrl && isMeaningfulSlug(item.normUrl) && normInputPage === item.normUrl) {
+      matchedItem = item;
+      matchReason = 'Page slug matches previously assigned URL';
+      break;
+    }
+
+    // 4. Page slug matches Page slug (strictly non-generic)
+    if (normInputPage && isMeaningfulSlug(normInputPage) && item.normPage && isMeaningfulSlug(item.normPage) && normInputPage === item.normPage) {
+      matchedItem = item;
+      matchReason = 'Page slug matches previously assigned page';
+      break;
+    }
+
+    // 5. Identical topic title (if topic is descriptive, > 12 characters)
+    if (normInputTopic && normInputTopic.length > 12 && item.normTopic && normInputTopic === item.normTopic) {
+      matchedItem = item;
+      matchReason = 'Identical topic headline';
+      break;
+    }
+  }
+
+  if (!matchedItem) {
+    return {
+      isDuplicate: false,
+      isWarning: false,
+      allowed: true,
+      severity: 'CLEAN',
+      message: 'Verified Clean: No duplicate assignment found in the last 60 days.'
+    };
+  }
+
+  // Compute days between target assignment date and existing assignment date
+  const targetDate = date ? (parseSheetDate(date) || new Date()) : new Date();
+  const existingDate = new Date(matchedItem.parsedDate);
+  const daysDiff = Math.max(0, Math.round(Math.abs(targetDate.getTime() - existingDate.getTime()) / (1000 * 60 * 60 * 24)));
+
+  if (daysDiff <= 30) {
+    return {
+      isDuplicate: true,
+      isWarning: false,
+      allowed: false,
+      severity: 'BLOCKED',
+      daysDiff,
+      matchReason,
+      existing: matchedItem,
+      message: `🚫 Duplicate Assignment Blocked: This page was already assigned ${daysDiff === 0 ? 'today' : daysDiff + ' day' + (daysDiff === 1 ? '' : 's') + ' ago'} (on ${matchedItem.date}) in "${matchedItem.sheetTab}" by ${matchedItem.assignedBy || 'SEO Team'} for topic "${matchedItem.topic}". Re-assigning the same page within 30 days is strictly prohibited to prevent content cannibalization.`
+    };
+  }
+
+  // Between 31 and 60 days: Allowed with advisory warning flag
+  return {
+    isDuplicate: false,
+    isWarning: true,
+    allowed: true,
+    severity: 'WARNING',
+    daysDiff,
+    matchReason,
+    existing: matchedItem,
+    message: `⚠️ Re-optimization Notice: This page was previously assigned ${daysDiff} days ago (on ${matchedItem.date}) in "${matchedItem.sheetTab}". Cooldown period (30 days) has passed, but ensure new goals and fresh search intent are defined.`
+  };
+}
+
 module.exports = {
   SPREADSHEET_ID,
   SHEET_METADATA,
@@ -585,5 +889,10 @@ module.exports = {
   isOND2026,
   isOctober2026,
   getAccessToken,
-  getONDMonth2026
+  getONDMonth2026,
+  parseSheetDate,
+  normalizeUrlOrSlug,
+  normalizeTitle,
+  getRecentUrlRegistry,
+  checkDuplicateAssignment
 };

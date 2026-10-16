@@ -79,14 +79,67 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 200, result);
 
       } catch (err) {
-        console.error("[API /assign Error]:", err);
-        return sendJson(res, 500, {
+        console.error("[API /assign Error]:", err.message);
+        const statusCode = err.isDuplicate ? 409 : 500;
+        return sendJson(res, statusCode, {
           success: false,
-          error: err.message
+          duplicate: !!err.isDuplicate,
+          error: err.message,
+          details: err.duplicateDetails || null
         });
       }
     });
     return;
+  }
+
+  // --- API: 60-Day URL & Page Registry (Duplicate Prevention) ---
+  if (pathname === '/api/url-registry' && req.method === 'GET') {
+    try {
+      const force = parsedUrl.searchParams.get('refresh') === 'true';
+      const registry = await sheetsService.getRecentUrlRegistry(force);
+      return sendJson(res, 200, {
+        success: true,
+        count: registry.length,
+        days: 60,
+        lastUpdated: new Date().toISOString(),
+        registry
+      });
+    } catch (err) {
+      console.error("[API /api/url-registry Error]:", err);
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
+  // --- API: Real-time Live Duplicate Check (URL, Page, Topic within 30/60 days) ---
+  if (pathname === '/api/check-duplicate') {
+    try {
+      if (req.method === 'GET') {
+        const queryParams = {
+          url: parsedUrl.searchParams.get('url') || '',
+          page: parsedUrl.searchParams.get('page') || '',
+          topic: parsedUrl.searchParams.get('topic') || '',
+          date: parsedUrl.searchParams.get('date') || ''
+        };
+        const check = await sheetsService.checkDuplicateAssignment(queryParams);
+        return sendJson(res, 200, { success: true, ...check });
+      } else if (req.method === 'POST') {
+        let body = '';
+        req.on('data', chunk => { body += chunk; });
+        req.on('end', async () => {
+          try {
+            const payload = JSON.parse(body || '{}');
+            const check = await sheetsService.checkDuplicateAssignment(payload);
+            return sendJson(res, 200, { success: true, ...check });
+          } catch (e) {
+            return sendJson(res, 400, { success: false, error: e.message });
+          }
+        });
+        return;
+      }
+    } catch (err) {
+      console.error("[API /api/check-duplicate Error]:", err);
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
   }
 
   // --- API: Get All OND (Oct, Nov, Dec) 2026 Assignments (Live from Sheets) ---

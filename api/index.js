@@ -81,11 +81,55 @@ module.exports = async (req, res) => {
       const result = await sheetsService.assignToSheet(data);
       return sendJson(res, 200, result);
     } catch (err) {
-      console.error("[Vercel /api/assign Error]:", err);
-      return sendJson(res, 500, {
+      console.error("[Vercel /api/assign Error]:", err.message);
+      const statusCode = err.isDuplicate ? 409 : 500;
+      return sendJson(res, statusCode, {
         success: false,
-        error: err.message
+        duplicate: !!err.isDuplicate,
+        error: err.message,
+        details: err.duplicateDetails || null
       });
+    }
+  }
+
+  // --- API: 60-Day URL & Page Registry (Duplicate Prevention) ---
+  if (pathname === '/api/url-registry' && req.method === 'GET') {
+    try {
+      const force = parsedUrl.searchParams.get('refresh') === 'true';
+      const registry = await sheetsService.getRecentUrlRegistry(force);
+      return sendJson(res, 200, {
+        success: true,
+        count: registry.length,
+        days: 60,
+        lastUpdated: new Date().toISOString(),
+        registry
+      });
+    } catch (err) {
+      console.error("[Vercel /api/url-registry Error]:", err);
+      return sendJson(res, 500, { success: false, error: err.message });
+    }
+  }
+
+  // --- API: Real-time Live Duplicate Check (URL, Page, Topic within 30/60 days) ---
+  if (pathname === '/api/check-duplicate') {
+    try {
+      if (req.method === 'GET') {
+        const queryParams = {
+          url: parsedUrl.searchParams.get('url') || '',
+          page: parsedUrl.searchParams.get('page') || '',
+          topic: parsedUrl.searchParams.get('topic') || '',
+          date: parsedUrl.searchParams.get('date') || ''
+        };
+        const check = await sheetsService.checkDuplicateAssignment(queryParams);
+        return sendJson(res, 200, { success: true, ...check });
+      } else if (req.method === 'POST') {
+        const payload = await parseBody(req);
+        const check = await sheetsService.checkDuplicateAssignment(payload || {});
+        return sendJson(res, 200, { success: true, ...check });
+      }
+    } catch (err) {
+      console.error("[Vercel /api/check-duplicate Error]:", err);
+      return sendJson(res, 500, { success: false, error: err.message });
     }
   }
 

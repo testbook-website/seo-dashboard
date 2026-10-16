@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
   
   <!-- CSS Stylesheet -->
-  <link rel="stylesheet" href="styles.css?v=2.2">
+  <link rel="stylesheet" href="styles.css?v=2.3">
 </head>
 <body data-theme="light">
 
@@ -409,17 +409,69 @@
               </div>
 
               <!-- Page / URL -->
-              <div class="form-group">
-                <label for="page" class="field-label">Page / Target URL <span class="req">*</span></label>
-                <input 
-                  type="text" 
-                  id="page" 
-                  name="page" 
-                  class="form-control" 
-                  placeholder="e.g. /bihar-gov-exams/police-constable-syllabus or New Page"
-                  required
-                >
-                <div class="field-error-msg">Target Page URL or Slug is required.</div>
+              <div class="form-group" id="group-page-input">
+                <div class="field-label-row">
+                  <label for="page" class="field-label">Page / Target URL <span class="req">*</span></label>
+                  <span class="field-dup-badge" id="page-dup-badge">🛡️ 60-Day Shield Active</span>
+                </div>
+                <div class="input-with-icon-wrap">
+                  <input 
+                    type="text" 
+                    id="page" 
+                    name="page" 
+                    class="form-control" 
+                    placeholder="e.g. /bihar-gov-exams/police-constable-syllabus or https://testbook.com/..."
+                    required
+                    autocomplete="off"
+                  >
+                  <span class="input-inline-status" id="page-input-status-icon"></span>
+                </div>
+                <div class="field-error-msg" id="page-error-msg">Target Page URL or Slug is required.</div>
+              </div>
+            </div>
+
+            <!-- REAL-TIME 60-DAY DUPLICATE PREVENTION & CANNIBALIZATION SHIELD -->
+            <div id="duplicate-shield-card" class="duplicate-shield-card hidden" role="alert" aria-live="polite">
+              <div class="shield-main-content">
+                <div class="shield-header-row">
+                  <div class="shield-title-wrap">
+                    <span class="shield-icon" id="shield-icon">🚫</span>
+                    <span class="shield-badge" id="shield-badge">DUPLICATE DETECTED</span>
+                    <span class="shield-days-tag" id="shield-days-tag">Assigned Recently</span>
+                  </div>
+                  <span class="shield-rule-tag" id="shield-rule-tag">30-Day Anti-Cannibalization Rule</span>
+                </div>
+                
+                <p class="shield-headline" id="shield-headline"></p>
+
+                <!-- Detailed metadata breakdown card -->
+                <div class="shield-meta-grid" id="shield-meta-grid">
+                  <div class="shield-meta-item">
+                    <span class="meta-lbl">Previous Date</span>
+                    <span class="meta-val" id="shield-meta-date">-</span>
+                  </div>
+                  <div class="shield-meta-item">
+                    <span class="meta-lbl">Assigned By</span>
+                    <span class="meta-val" id="shield-meta-assignedBy">-</span>
+                  </div>
+                  <div class="shield-meta-item">
+                    <span class="meta-lbl">Source Sheet Tab</span>
+                    <span class="meta-val" id="shield-meta-tab">-</span>
+                  </div>
+                  <div class="shield-meta-item">
+                    <span class="meta-lbl">Sheet Row</span>
+                    <span class="meta-val" id="shield-meta-row">-</span>
+                  </div>
+                  <div class="shield-meta-item full-width">
+                    <span class="meta-lbl">Original Assigned Topic</span>
+                    <span class="meta-val" id="shield-meta-topic">-</span>
+                  </div>
+                </div>
+
+                <div class="shield-footer-notice" id="shield-footer-notice">
+                  <span class="notice-icon">⚠️</span>
+                  <span class="notice-text">To prevent keyword cannibalization and duplicated content team effort, re-assigning this URL is <strong>blocked</strong> until the 30-day cooldown expires.</span>
+                </div>
               </div>
             </div>
           </div>
@@ -606,6 +658,10 @@
                 <tr>
                   <th scope="row">Page</th>
                   <td id="preview-page" class="font-mono text-xs">/target-url</td>
+                </tr>
+                <tr>
+                  <th scope="row">Duplicate Check</th>
+                  <td id="preview-dup-cell"><span class="badge-status-pill clean" id="preview-dup-badge">✓ Clean (60-Day Shield)</span></td>
                 </tr>
                 <tr>
                   <th scope="row">Primary KW</th>
@@ -1194,6 +1250,6 @@
   <div class="toast-container" id="toast-container" aria-live="polite"></div>
 
   <!-- Application Logic -->
-  <script src="app.js?v=2.2"></script>
+  <script src="app.js?v=2.3"></script>
 </body>
 </html>
